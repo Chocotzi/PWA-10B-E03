@@ -1,0 +1,18 @@
+# Normaliza los saltos de línea: el repositorio guarda LF para todo el texto,
+# sin importar el sistema operativo de cada integrante del equipo.
+* text=auto eol=lf
+
+# Scripts que GitHub Actions ejecuta en Linux: siempre LF.
+*.sh   text eol=lf
+*.mjs  text eol=lf
+Makefile text eol=lf
+
+# Archivos binarios: sin conversión de saltos de línea.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.webp binary
+*.woff  binary
+*.woff2 binary
