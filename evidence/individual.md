@@ -119,32 +119,47 @@ protección real en este repo es el `.gitignore` ampliado más la revisión manu
 ## Cleber Antonio Bolaños Moreno
 
 **Mi contribución y enlace al archivo, commit o revisión**
+Realicé la revisión de los requisitos y de la decisión de arquitectura de la Semana 1:
 
-<!-- Qué hiciste tú específicamente + enlace al archivo, commit o revisión en el repo del equipo -->
+- Revisé `docs/requirements.md` para comprobar que los requisitos funcionales y no funcionales describen el sistema de inspecciones de laboratorio y contemplan conectividad intermitente.
+- Revisé `docs/decision-record.md`, en particular la comparación entre PWA, web tradicional, app nativa y multiplataforma.
+- Verifiqué en `src/lib/data/inspections.ts` que los registros mostrados son datos sintéticos y no incluyen información personal o real.
+- Revisé que la pantalla principal en `src/app/page.tsx` muestre las tres inspecciones iniciales.
+
+Enlace: revisión realizada sobre el commit `<SHA_FINAL>` del repositorio
+https://github.com/Chocotzi/PWA-10B-E03
+(archivos revisados: `docs/requirements.md`, `docs/decision-record.md`,
+`src/lib/data/inspections.ts` y `src/app/page.tsx`).
+
 
 **Una decisión que explico**
 
-<!-- Una decisión del proyecto que entiendes a fondo y puedes defender en revisión oral -->
+Puedo explicar la decisión de utilizar una PWA. El sistema se usará para inspecciones en laboratorios, donde puede haber conectividad limitada o intermitente. Una PWA permite conservar una sola base de código web y, en semanas posteriores, incorporar instalación desde el navegador, almacenamiento local, funcionamiento sin conexión y sincronización cuando vuelva la red.
+
+En la Semana 1 esta decisión solo está documentada: todavía no existen service worker, manifiesto, almacenamiento local ni sincronización. El alcance actual es dejar el starter, los requisitos y la decisión técnica preparados para implementar esas funciones después.
 
 **Comando o prueba ejecutada y resultado real**
 
-<!-- Comando que corriste (p. ej. npm run build, make verify, bash public-tests/check.sh) y su salida real -->
+```text
+$ npm test
+starter.spec.mjs: PASS
+```
 
 **Qué comprueba y qué no**
 
-<!-- Alcance de esa prueba: qué garantiza y qué queda fuera -->
+Comprueba que la prueba mínima del starter pasa y que la página inicial conserva el contenido esperado sobre inspecciones de laboratorio y datos sintéticos.
+No comprueba el funcionamiento sin conexión, la instalación como PWA, el guardado de inspecciones, la sincronización de datos, la accesibilidad completa ni el comportamiento en dispositivos móviles reales.
 
 **Una limitación**
 
-<!-- Algo que quedó sin resolver, un supuesto, un riesgo técnico o una duda abierta -->
+La aplicación todavía es una versión inicial: solo visualiza tres inspecciones sintéticas. Aún no permite crear, editar o guardar inspecciones, ni operar sin conexión. Esas funciones se implementarán en las siguientes semanas.
 
 **Uso de IA (herramienta, propósito, partes influidas, verificación humana)**
 
-<!-- Herramienta: -->
-<!-- Propósito: -->
-<!-- Partes influidas: -->
-<!-- Verificación humana: -->
-
+Herramienta: <ChatGPT/Codex>.
+Propósito: apoyo para comprender los entregables de la Semana 1 y redactar la evidencia individual.
+Partes influidas: esta sección de evidence/individual.md.
+Verificación humana: revisé personalmente los documentos y archivos indicados, y ejecuté npm test para confirmar el resultado reportado.
 ---
 
 ## Benkis Carbajal Hernández
