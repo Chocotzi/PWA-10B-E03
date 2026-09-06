@@ -151,27 +151,56 @@ protección real en este repo es el `.gitignore` ampliado más la revisión manu
 
 **Mi contribución y enlace al archivo, commit o revisión**
 
-<!-- Qué hiciste tú específicamente + enlace al archivo, commit o revisión en el repo del equipo -->
+Revisión individual del proyecto base de la Semana 1 y validación de que el repositorio cumple con los entregables solicitados en `START_HERE.md`:
+
+- Revisión de la estructura general del starter para confirmar que estuvieran presentes los archivos mínimos: `package.json`, `src/app/page.tsx`, `src/app/layout.tsx`, `src/app/globals.css`, `src/lib/data/inspections.ts`, `docs/requirements.md`, `docs/decision-record.md`, `tests/starter.spec.mjs` y `evidence/individual.md`.
+- Revisión de la pantalla inicial en `src/app/page.tsx`, comprobando que corresponde al tema de inspecciones de laboratorio y que muestra datos sintéticos.
+- Revisión de `src/lib/data/inspections.ts`, confirmando que los registros usados en la aplicación no contienen datos reales de personas, estudiantes o laboratorios.
+- Revisión de `docs/requirements.md` y `docs/decision-record.md` para verificar que la documentación corresponde al problema planteado y a la decisión técnica de usar una PWA.
+- Redacción de mi sección individual en `evidence/individual.md`, dejando evidencia de mi participación, prueba ejecutada, alcance de la prueba, limitación y uso de IA.
+
+Enlace: commit `<pendiente>` en `https://github.com/Chocotzi/PWA-10B-E03`
+(archivos revisados: `src/app/page.tsx`, `src/lib/data/inspections.ts`, `docs/requirements.md`,
+`docs/decision-record.md`, `tests/starter.spec.mjs`, `evidence/individual.md`).
+
 
 **Una decisión que explico**
 
-<!-- Una decisión del proyecto que entiendes a fondo y puedes defender en revisión oral -->
+La decisión que puedo explicar es la elección de una **PWA** para el sistema de inspecciones de laboratorio. Esta decisión es adecuada porque el problema requiere que en el futuro la aplicación pueda utilizarse en espacios donde la conexión a internet sea inestable o no esté disponible.
+
+Una PWA permite trabajar con tecnologías web y, en etapas posteriores, agregar capacidades como instalación desde el navegador, funcionamiento sin conexión, almacenamiento local y sincronización cuando vuelva la red. Para este proyecto es una opción conveniente porque mantiene una sola base de código y se ajusta al flujo de entrega del curso mediante repositorio, URL y GitHub Actions.
+
+Esta decisión no resuelve todavía todas las necesidades del sistema. En la Semana 1 la aplicación aún no tiene service worker, manifiesto, almacenamiento local ni sincronización de datos; por ahora solo existe el starter ejecutable con datos sintéticos y documentación inicial.
 
 **Comando o prueba ejecutada y resultado real**
+$ npm ci
+added 32 packages, and audited 33 packages
+found 0 vulnerabilities
 
-<!-- Comando que corriste (p. ej. npm run build, make verify, bash public-tests/check.sh) y su salida real -->
+$ npm run verify
+Starter verificable: PASS
+Reporte: {"schemaVersion": 1,"checkedAt": "2026-09-06T18:10:14.098Z","status": "pass","missing": []}
+
+$ npm run test
+starter.spec.mjs: PASS
+
+$ npm run dev
+
+ Local:http://localhost:3000-> se renderizan las 3 inspecciones 
 
 **Qué comprueba y qué no**
 
-<!-- Alcance de esa prueba: qué garantiza y qué queda fuera -->
+Comprueba: que el proyecto conserva los archivos mínimos requeridos por el starter; que existe la aplicación base en src/app/; que están los documentos de la Semana 1; que existe la prueba inicial; que se genera el reporte de verificación; y que la página principal contiene el texto esperado sobre inspecciones de laboratorio y datos sintéticos.
+No comprueba: que la aplicación funcione sin conexión; que pueda instalarse como PWA; que exista sincronización de inspecciones; que se puedan capturar, editar o eliminar registros; que haya almacenamiento local; ni que el comportamiento esté probado en un dispositivo móvil real.
 
 **Una limitación**
 
-<!-- Algo que quedó sin resolver, un supuesto, un riesgo técnico o una duda abierta -->
+La principal limitación es que el proyecto todavía se encuentra en una etapa inicial. La aplicación muestra únicamente datos sintéticos y no permite registrar inspecciones reales, guardar información localmente ni trabajar sin conexión. Estas funciones deberán implementarse en las siguientes semanas del curso.
+Además, la verificación actual confirma la estructura mínima del starter, pero no valida todavía requisitos funcionales completos de una PWA.
 
 **Uso de IA (herramienta, propósito, partes influidas, verificación humana)**
 
-<!-- Herramienta: -->
-<!-- Propósito: -->
-<!-- Partes influidas: -->
-<!-- Verificación humana: -->
+Herramienta: ChatGPT/Codex.
+Propósito: apoyo para analizar la estructura del proyecto, entender qué solicita START_HERE.md y redactar mi sección de evidencia individual con un formato similar al resto del documento.
+Partes influidas: sección de Benkis Carbajal Hernández en evidence/individual.md.
+Verificación humana: revisé que la información redactada coincidiera con los archivos reales del repositorio, con el contenido del starter y con los entregables solicitados para la Semana 1. También confirmé que la evidencia no declara funcionalidades que todavía no están implementadas.
