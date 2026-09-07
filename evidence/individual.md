@@ -29,7 +29,7 @@ Puesta en marcha verificable del starter y documentación de la Semana 1:
   cada `next dev`) y `turbopack.root` fijado a la raíz del proyecto.
 - Ejecución de la batería de verificación local y confirmación del arranque en `http://localhost:3000`.
 
-Enlace: commit `<pendiente>` en `https://github.com/Chocotzi/PWA-10B-E03`
+Enlace: commit `bab3147` en `https://github.com/Chocotzi/PWA-10B-E03`
 (archivos: `docs/requirements.md`, `docs/decision-record.md`, `.gitignore`, `.gitattributes`,
 `next.config.mjs`, `evidence/individual.md`).
 
@@ -126,7 +126,7 @@ Realicé la revisión de los requisitos y de la decisión de arquitectura de la 
 - Verifiqué en `src/lib/data/inspections.ts` que los registros mostrados son datos sintéticos y no incluyen información personal o real.
 - Revisé que la pantalla principal en `src/app/page.tsx` muestre las tres inspecciones iniciales.
 
-Enlace: revisión realizada sobre el commit `<SHA_FINAL>` del repositorio
+Enlace: revisión realizada sobre el commit `ca1e384` del repositorio
 https://github.com/Chocotzi/PWA-10B-E03
 (archivos revisados: `docs/requirements.md`, `docs/decision-record.md`,
 `src/lib/data/inspections.ts` y `src/app/page.tsx`).
@@ -160,6 +160,7 @@ Herramienta: <ChatGPT/Codex>.
 Propósito: apoyo para comprender los entregables de la Semana 1 y redactar la evidencia individual.
 Partes influidas: esta sección de evidence/individual.md.
 Verificación humana: revisé personalmente los documentos y archivos indicados, y ejecuté npm test para confirmar el resultado reportado.
+
 ---
 
 ## Benkis Carbajal Hernández
@@ -174,7 +175,7 @@ Revisión individual del proyecto base de la Semana 1 y validación de que el re
 - Revisión de `docs/requirements.md` y `docs/decision-record.md` para verificar que la documentación corresponde al problema planteado y a la decisión técnica de usar una PWA.
 - Redacción de mi sección individual en `evidence/individual.md`, dejando evidencia de mi participación, prueba ejecutada, alcance de la prueba, limitación y uso de IA.
 
-Enlace: commit `<pendiente>` en `https://github.com/Chocotzi/PWA-10B-E03`
+Enlace: commit `1805d57` en `https://github.com/Chocotzi/PWA-10B-E03`
 (archivos revisados: `src/app/page.tsx`, `src/lib/data/inspections.ts`, `docs/requirements.md`,
 `docs/decision-record.md`, `tests/starter.spec.mjs`, `evidence/individual.md`).
 
@@ -188,6 +189,8 @@ Una PWA permite trabajar con tecnologías web y, en etapas posteriores, agregar 
 Esta decisión no resuelve todavía todas las necesidades del sistema. En la Semana 1 la aplicación aún no tiene service worker, manifiesto, almacenamiento local ni sincronización de datos; por ahora solo existe el starter ejecutable con datos sintéticos y documentación inicial.
 
 **Comando o prueba ejecutada y resultado real**
+
+```text
 $ npm ci
 added 32 packages, and audited 33 packages
 found 0 vulnerabilities
@@ -202,6 +205,7 @@ starter.spec.mjs: PASS
 $ npm run dev
 
  Local:http://localhost:3000-> se renderizan las 3 inspecciones 
+```
 
 **Qué comprueba y qué no**
 
