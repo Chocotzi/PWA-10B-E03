@@ -2,49 +2,51 @@
 
 Starter oficial para la materia **Aplicaciones Web Progresivas**.
 
-Este repositorio es el punto de partida común para las actividades de las semanas 1–13. En la Semana 1 no debes construir todavía toda la PWA: debes poner en marcha este proyecto, documentar el problema y dejar una primera versión reproducible. Cada semana conservarás el mismo repositorio y agregarás la capacidad indicada por la actividad.
+## 1. Setup
 
-## Requisitos locales
+Para preparar el entorno de desarrollo local, asegúrate de cumplir con los siguientes requisitos e instalar las dependencias:
 
-- Node.js 20 LTS o superior compatible con Next.js.
-- npm 10 o superior.
-- Git y una cuenta de GitHub.
+- **Node.js**: Versión 20 LTS o superior.
+- **npm**: Versión 10 o superior.
+- **Git** y una cuenta de GitHub.
 
-## Arranque verificable
-
+**Instalación:**
+Clona este repositorio y ejecuta el siguiente comando en la raíz del proyecto para instalar las dependencias exactas:
 ```bash
 npm ci
+```
+
+## 2. Ejecución
+
+Para levantar el servidor de desarrollo y visualizar la aplicación, ejecuta:
+```bash
 npm run dev
 ```
+Abre <http://localhost:3000> en tu navegador. Deberías ver la pantalla inicial de inspecciones con datos sintéticos (Laboratorio de Redes, Electrónica y Software).
 
-Abre <http://localhost:3000>. Debes ver la pantalla inicial de inspecciones con datos sintéticos.
+## 3. Verificación
 
-Antes de entregar ejecuta:
+Antes de enviar cualquier cambio, asegúrate de que el proyecto cumple con los estándares mediante los siguientes comandos:
 
+**Verificación automática (linter, build y pruebas):**
 ```bash
-make verify
-bash public-tests/check.sh
+npm run verify
+npm test
+npm run build
 ```
 
-`make verify` genera `reports/verification.json`; ese archivo y la corrida verde de GitHub Actions son la evidencia técnica del arranque.
+**Verificación pública del starter:**
+```bash
+bash public-tests/check.sh
+```
+Estos comandos comprueban que el código compila correctamente y la estructura general es válida. `make verify` o `npm run verify` genera `reports/verification.json`.
 
-## Flujo de trabajo del curso
+Además, para verificar la PWA: abre **Chrome DevTools -> Application -> Manifest** y comprueba que el archivo `manifest.webmanifest` carga sin errores y la PWA es instalable.
 
-1. Conserva este repositorio como tu proyecto personal y crea un repositorio privado en GitHub.
-2. Completa únicamente los entregables de la actividad de la semana.
-3. Haz cambios pequeños y descriptivos; no borres lo que ya funciona.
-4. Ejecuta la verificación local y espera que GitHub Actions termine en verde.
-5. Entrega en Classroom la URL del repositorio, el SHA exacto evaluado, el enlace a Actions y `evidence/individual.md`.
+## 4. Evidencia
 
-No uses datos reales de personas, laboratorios o estudiantes. Todo dato del starter es sintético.
+La evidencia individual del trabajo técnico realizado se encuentra en la carpeta `evidence/`.
+- **Archivo principal:** `evidence/individual.md`
 
-## Estructura inicial
-
-- `src/app/`: aplicación Next.js con App Router.
-- `src/lib/data/`: datos sintéticos de inspecciones.
-- `docs/`: plantillas de documentación de la Semana 1.
-- `scripts/verify.mjs`: verificación reproducible local.
-- `tests/`: prueba mínima del starter.
-
-Las decisiones de arquitectura y las nuevas carpetas se incorporan en las actividades correspondientes; no es necesario adelantarlas.
+Este archivo documenta la contribución de la semana, con la decisión técnica tomada por cada integrante, las pruebas ejecutadas, limitaciones encontradas y el uso transparente de herramientas de IA durante el desarrollo. No uses datos reales de personas o laboratorios; usa datos sintéticos.
 
