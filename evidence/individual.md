@@ -69,4 +69,44 @@ Dado que aún no se implementa un Service Worker con una estrategia de caché (e
 
 ## Benkis Carbajal Hernández
 
-<!-- Agrega tu evidencia de S2 aquí siguiendo la misma estructura -->
+**SHA de mi contribución (rama dev-cleber):**9781e22f7896ba4b1b51d688a8ecfd4bb66db112
+
+**Mi contribución y archivos modificados**
+
+Implementé la pantalla principal de inspecciones y el contenedor compartido de la aplicación.
+
+- `src/app/page.tsx`: muestra la navegación de datos y permite forzar los tres estados requeridos mediante la URL: `?state=loading`, `?state=error` y `?state=empty`.
+- `src/components/app-shell.tsx`: incorpora la navegación principal y los landmarks semánticos `header`, `nav`, `main` y `footer`, además del enlace para saltar al contenido.
+- `src/app/globals.css`: agrega diseño responsive, foco visible para navegación por teclado y estilos para los estados de carga, error y vacío.
+
+**Decisión técnica propia**
+
+Elegí forzar los estados de interfaz con el parámetro de consulta `state` en la URL, en vez de cambiar una constante del código para cada demostración. Así se pueden revisar manualmente los cuatro escenarios desde el navegador sin editar ni recompilar el proyecto: `/`, `/?state=loading`, `/?state=error` y `/?state=empty`. El parámetro se interpreta en `page.tsx` y los elementos comunes quedan aislados en `AppShell`, evitando repetir la navegación y los landmarks en futuras pantallas.
+
+**Prueba ejecutada y resultado real**
+
+```bash
+$ node scripts/verify.mjs
+Starter verificable: PASS
+
+$ node node_modules/typescript/bin/tsc --noEmit
+
+```
+
+También se inició el build de Next.js: alcanzó `Compiled successfully`, pero el proceso de comprobación posterior quedó retenido por el entorno de ejecución. Por ello no se declara el build completo como prueba aprobada.
+
+**Qué comprueba y qué no**
+
+- **Comprueba:** Que el proyecto conserva los requisitos verificables del starter y que los archivos TypeScript modificados no presentan errores de tipos.
+- **No comprueba:** Un recorrido automatizado de teclado ni una auditoría automatizada de contraste. Esas revisiones deben hacerse manualmente en el navegador con Tab y las herramientas de accesibilidad.
+
+**Una limitación**
+
+Los estados de carga, error y vacío son demostrativos: no dependen todavía de una solicitud real a una API. En consecuencia, el botón “Reintentar” vuelve a la vista normal, pero aún no repite una operación de red ni informa de errores de servidor reales.
+
+**Uso de IA (herramienta, propósito, partes influidas y verificación humana)**
+
+- **Herramienta:** Codex (GPT-5).
+- **Propósito:** Apoyo para estructurar `AppShell`, proponer los estados manuales por URL y redactar estilos accesibles y responsive.
+- **Partes influidas:** `src/app/page.tsx`, `src/components/app-shell.tsx`, `src/app/globals.css` y esta sección de evidencia.
+- **Verificación humana:** Se revisaron los cambios y se ejecutaron `node scripts/verify.mjs` y `node node_modules/typescript/bin/tsc --noEmit`; ambos terminaron correctamente. Antes de entregar se debe revisar en el navegador el orden de Tab, los landmarks y las cuatro URLs de estado.
