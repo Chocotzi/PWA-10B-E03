@@ -18,7 +18,7 @@ export default async function HomePage({ searchParams }: PageProps) {
         <div className="page-shell">
           <p className="eyebrow">Registro de mantenimiento</p>
           <h1 id="page-title">Inspecciones de laboratorio</h1>
-          <p className="lead">Consulta y da seguimiento a las revisiones de los laboratorios.</p>
+          <p className="lead">Consulta y da seguimiento a las revisiones de los laboratorios. Los datos mostrados son sintéticos.</p>
         </div>
       </section>
       <section id="inspecciones" aria-labelledby="inspections-heading" className="page-shell content-section">
