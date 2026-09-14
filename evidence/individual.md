@@ -3,7 +3,7 @@
 - **Grupo y equipo:** Aplicaciones Web Progresivas 10B — Equipo E03
 - **Repositorio privado del equipo:** https://github.com/Chocotzi/PWA-10B-E03
 - **SHA final (40 caracteres):** `<pendiente, se llena con: git rev-parse HEAD>`
-- **Enlace a Actions de ese SHA:** `<pendiente: https://github.com/Chocotzi/PWA-10B-E03/actions -> corrida del SHA final>`
+- **Enlace a Actions de ese SHA:** https://github.com/Chocotzi/PWA-10B-E03/actions
 
 > Modalidad: **equipo autorizado, evidencia individual**. Este es un solo archivo con una sección
 > por integrante; cada quien redacta y responde por **su** sección. Reemplaza cada `<!-- ... -->`
