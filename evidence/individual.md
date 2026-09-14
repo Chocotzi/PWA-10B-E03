@@ -2,7 +2,12 @@
 
 - **Grupo y equipo:** Aplicaciones Web Progresivas 10B — Equipo E03
 - **Repositorio privado del equipo:** https://github.com/Chocotzi/PWA-10B-E03
-- **SHA final (40 caracteres):** `544c9198da848567f6a062c10841ff9c09cc9720`
+- **SHA final (40 caracteres):** `1571f6664eab2ea16395ffa8bfac277934a66871`
+  (nota: un commit no puede contener su propio hash, así que este campo registra el hash de
+  su *commit padre* — el mismo patrón de Semana 1, bab3147→5003d05. **El SHA real de entrega
+  de Semana 2 es el de este commit de cierre que agrega esta nota** (el mensaje de ese commit
+  lo dice explícitamente), no el valor `1571f66…` escrito arriba. Para el hash exacto: es el
+  commit al que apunta el tag `s02-entrega` y `git log -1 --format=%H` sobre `main`.)
 - **Enlace a Actions de ese SHA:** https://github.com/Chocotzi/PWA-10B-E03/actions
 
 > Modalidad: **equipo autorizado, evidencia individual**. Este es un solo archivo con una sección
