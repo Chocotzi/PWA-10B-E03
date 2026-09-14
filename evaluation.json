@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 2,
+  "assignmentId": "w02-shell-manifest",
+  "schedule": {
+    "week": 2,
+    "partial": 1,
+    "maxDurationDays": 7
+  },
+  "grading": {
+    "partialContributionPoints": 8,
+    "bucket": "continuous_activity"
+  },
+  "difficulty": {
+    "level": 6,
+    "justification": "Integra el mínimo oficial con restricciones de ingeniería, evidencia ejecutable, trade-offs y recuperación dentro de una semana."
+  },
+  "traceability": {
+    "officialOutcome": "Unidad II: componentes y configuración; resultado de generar app shell y configurar PWA.",
+    "institutionalMinimum": "Unidad II: componentes y configuración; resultado de generar app shell y configurar PWA.",
+    "engineeringTarget": "Diseñar un shell instalable con manifest válido, estados de carga/error y límites de componentes verificables.",
+    "upliftBasis": "La actividad agrega criterios de calidad, automatización, seguridad, observabilidad y evidencia individual sin alterar el alcance oficial."
+  },
+  "competencies": {
+    "primary": "C03",
+    "cumulative": [
+      "C10",
+      "C12"
+    ]
+  },
+  "reproducibility": {
+    "verifyCommand": "make verify",
+    "runCommand": "npm run dev"
+  },
+  "ci": {
+    "required": true,
+    "platform": "github_actions",
+    "mode": "hybrid",
+    "workflowPath": ".github/workflows/week-02-w02-shell-manifest.yml",
+    "setupCommands": [
+      "npm ci --ignore-scripts --no-audit --no-fund"
+    ],
+    "artifactPaths": [
+      "evaluation-result.json",
+      "coverage/",
+      "test-results/"
+    ]
+  },
+  "automationPolicy": {
+    "automaticOrSemiAutomaticTargetPercent": 90,
+    "maxManualPointsPercent": 10,
+    "manualReviewBudgetMinutes": 5,
+    "manualException": {
+      "instructorApproved": false,
+      "justification": "Sin excepción aprobada; revisión humana solo por bandera."
+    }
+  },
+  "qualityGates": [
+    "Instalación limpia y build reproducible.",
+    "Pruebas deterministas con datos sintéticos.",
+    "Reporte de resultados y artefactos de CI.",
+    "Sin secretos ni PII."
+  ],
+  "checks": [
+    {
+      "id": "AC-01",
+      "type": "automatic",
+      "points": 2,
+      "evidence": "Instalación limpia y build completan.",
+      "command": "test -f package.json && (test -f package-lock.json || test -f pnpm-lock.yaml || test -f yarn.lock) && npm run build --if-present"
+    },
+    {
+      "id": "AC-02",
+      "type": "automatic",
+      "points": 3,
+      "evidence": "Los artefactos declarados para la actividad existen.",
+      "command": "test -e 'public/manifest.webmanifest' && test -e 'src/app/layout.tsx' && test -e 'src/app/page.tsx' && test -e 'src/components/app-shell.tsx' && test -e 'tests/manifest.spec.ts'"
+    },
+    {
+      "id": "AC-03",
+      "type": "automatic",
+      "points": 2,
+      "evidence": "Existe una suite ejecutable de pruebas.",
+      "command": "test -d tests && find tests -type f -print -quit | grep -q . && npm run test --if-present -- --run"
+    },
+    {
+      "id": "AC-04",
+      "type": "semi_automatic",
+      "points": 1,
+      "evidence": "El reporte y la evidencia individual están presentes para inspección.",
+      "command": "test -f README.md && test -f evidence/individual.md"
+    }
+  ],
+  "individualEvidence": {
+    "required": true,
+    "signals": [
+      "evidence/individual.md",
+      "commit hash evaluado",
+      "decisión técnica explicada",
+      "prueba ejecutada y limitación"
+    ]
+  },
+  "antiGaming": {
+    "risks": [
+      "crear solo archivos vacíos",
+      "ajustar la solución a nombres de archivos",
+      "copiar evidencia sin comprenderla"
+    ],
+    "controls": [
+      "pruebas de comportamiento",
+      "casos negativos privados",
+      "commit fijado",
+      "defensa individual"
+    ]
+  },
+  "result": {
+    "totalPoints": 8,
+    "automaticPoints": 7,
+    "semiAutomaticPoints": 1,
+    "manualPoints": 0
+  }
+}

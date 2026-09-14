@@ -82,6 +82,10 @@ Al revisar el trabajo de Semana 2 encontré que `src/app/page.tsx` ahora recibe 
 - **Partes influidas:** `tests/manifest.spec.mjs`, `package.json` (script `test`) y esta sección de `evidence/individual.md`.
 - **Verificación humana:** Revisé y ejecuté yo mismo `npm test`, `npm run build` y `npm run verify` antes de commitear, y confirmé manualmente en el código de `src/app/page.tsx` que `searchParams` está tipado como `Promise<{ state?: string }>`, causa raíz del cambio de `○ /` a `ƒ /`.
 
+**Corrección posterior (mismo día, antes del cierre de entrega)**
+
+Tras cerrar y tagear la Semana 2 (`s02-entrega` sobre `6d4424c`), detecté un desajuste con la rúbrica oficial del profesor (`ASSIGNMENT.md` / `evaluation.json` del kit `PWA-w02-kit-estudiante.zip`): AC-02 exige literalmente que exista `tests/manifest.spec.ts`, y AC-03 corre `npm run test --if-present -- --run` sobre el workflow oficial `week-02-w02-shell-manifest.yml`. La versión anterior (`tests/manifest.spec.mjs` con `node:assert/strict`, sin ese workflow) no satisfacía ninguno de los dos. Corregí reemplazando el test por `tests/manifest.spec.ts` con Vitest (mismas verificaciones, mismo alcance, solo cambia el runner), agregué `vitest.config.ts` (con `include` restringido a `tests/**/*.spec.ts` para no tocar `tests/starter.spec.mjs`), agregué `.github/workflows/week-02-w02-shell-manifest.yml` sin modificar `week-01-starter-feedback.yml`, y actualicé `public-tests/check.sh`, `public-tests/README.md`, `ASSIGNMENT.md` y `evaluation.json` a las versiones oficiales del kit de Semana 2. El tag `s02-entrega` se movió al commit de esta corrección.
+
 ## Cleber Antonio Bolaños Moreno
 
 **SHA de mi contribución (rama dev-cleber):** 2cd9303c038cd11c77fa1b88e5dfac9e88c67863

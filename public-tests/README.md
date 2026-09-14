@@ -1,4 +1,4 @@
-# Check público del proyecto base
+# Public tests: w02-shell-manifest
 
-Ejecuta `bash public-tests/check.sh` desde la raíz del repositorio. Comprueba que el starter conserva sus archivos mínimos y que no se han añadido secretos conocidos.
+Ejecuta `bash public-tests/check.sh` desde la raíz del repositorio. Estos checks comprueban el contrato mínimo sin revelar los casos privados.
 
