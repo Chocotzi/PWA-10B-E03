@@ -13,7 +13,74 @@
 
 ## Carlos Andrés Arriaga Márquez
 
+**SHA de mi contribución (rama dev-cleber):** `<pendiente, se llena con: git rev-parse HEAD>`
 
+**Mi contribución y enlace al archivo, commit o revisión**
+
+Test del manifiesto y verificación de la cobertura de CI de Semana 2:
+- Creación de `tests/manifest.spec.mjs`: parsea `public/manifest.webmanifest` como JSON, valida que `name`, `start_url`, `display` y `scope` existan y no estén vacíos, que `icons` sea un arreglo con al menos 3 entradas, que cada ícono declarado exista realmente como archivo en `public/`, y que `src/app/layout.tsx` enlace el manifiesto.
+- Actualización del script `test` en `package.json` para encadenar `tests/starter.spec.mjs` y `tests/manifest.spec.mjs`.
+- Verificación de que `.github/workflows/week-01-starter-feedback.yml` (paso "Ejecutar pruebas") sigue cubriendo Semana 2 sin cambios, ya que corre `npm test` y este ahora ejecuta ambos specs.
+
+Enlace: commit `<pendiente>` en `https://github.com/Chocotzi/PWA-10B-E03` (archivos: `tests/manifest.spec.mjs`, `package.json`, `evidence/individual.md`).
+
+**Una decisión que explico**
+
+Se decidió no usar Vitest para el test del manifiesto y mantener `node:assert/strict`, en el mismo estilo que `tests/starter.spec.mjs`. El issue de Linear (APL-6) marca explícitamente "riesgo Vitest" y no se justificaba introducir una dependencia nueva a mitad de semana solo para una prueba adicional. Esto es consistente con la decisión de Semana 1 de mantener el stack mínimo (Next.js + Node nativo, sin frameworks de testing).
+
+**Comando o prueba ejecutada y resultado real**
+
+```bash
+$ npm test
+> pwa-inspecciones-laboratorio@0.1.0 test
+> node tests/starter.spec.mjs && node tests/manifest.spec.mjs
+
+starter.spec.mjs: PASS
+manifest.spec.mjs: PASS
+
+$ npm run build
+> pwa-inspecciones-laboratorio@0.1.0 build
+> next build
+
+▲ Next.js 16.3.4 (Turbopack)
+✓ Compiled successfully in 43s
+  Running TypeScript ...
+  Finished TypeScript in 19.5s ...
+  Collecting page data using 4 workers ...
+  Generating static pages using 4 workers (0/3) ...
+✓ Generating static pages using 4 workers (3/3) in 5.2s
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+└ ○ /_not-found
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+$ npm run verify
+> pwa-inspecciones-laboratorio@0.1.0 verify
+> node scripts/verify.mjs
+
+Starter verificable: PASS
+Reporte: reports/verification.json
+```
+
+**Qué comprueba y qué no**
+
+- **Comprueba:** Que `public/manifest.webmanifest` tiene los campos mínimos requeridos y al menos 3 íconos, que cada ícono referenciado existe físicamente en `public/`, y que `src/app/layout.tsx` efectivamente enlaza el manifiesto; también que `npm test`, `npm run build` y `npm run verify` corren de punta a punta sin errores sobre el estado actual de `dev-cleber`.
+- **No comprueba:** El contenido visual ni la validez semántica del manifiesto en un navegador real (por ejemplo, si Chrome DevTools lo acepta como instalable), el tamaño o resolución real de los archivos de ícono, ni el comportamiento de los estados `loading`/`error`/`empty` de `page.tsx`, que son responsabilidad de la Actividad 2.2.
+
+**Una limitación**
+
+Al revisar el trabajo de Semana 2 encontré que `src/app/page.tsx` ahora recibe `searchParams` como `Promise<{ state?: string }>` para forzar los tres estados de interfaz por query string (`?state=loading|error|empty`). Esto obliga a Next.js a tratar la ruta `/` como dinámica: en la tabla `Route (app)` del build de arriba aparece `ƒ /` en lugar de `○ /`, es decir, dejó de ser contenido estático prerenderizado. Esto contradice RNF-04 de `docs/requirements.md` ("La ruta `/` se entrega como contenido estático prerenderizado"). No corregí esto unilateralmente porque el código pertenece a la Actividad 2.2 de Benkis; lo dejo documentado como hallazgo de esta semana. Queda como pendiente de decisión de equipo para la próxima semana, ya sea aceptar el cambio de RNF-04 o revertir `page.tsx` a un Server Component estático con el manejo de estado movido al cliente (por ejemplo, leyendo `useSearchParams` en un componente cliente en vez de recibir `searchParams` como prop del servidor).
+
+**Uso de IA (herramienta, propósito, partes influidas, verificación humana)**
+
+- **Herramienta:** Claude Code (Anthropic), modelo Claude Sonnet 5.
+- **Propósito:** Redacción de `tests/manifest.spec.mjs`, ajuste del script `test` en `package.json`, diagnóstico del cambio de renderizado estático a dinámico en `/` a partir de la salida de `npm run build`, y borrador de esta sección.
+- **Partes influidas:** `tests/manifest.spec.mjs`, `package.json` (script `test`) y esta sección de `evidence/individual.md`.
+- **Verificación humana:** Revisé y ejecuté yo mismo `npm test`, `npm run build` y `npm run verify` antes de commitear, y confirmé manualmente en el código de `src/app/page.tsx` que `searchParams` está tipado como `Promise<{ state?: string }>`, causa raíz del cambio de `○ /` a `ƒ /`.
 
 ## Cleber Antonio Bolaños Moreno
 
