@@ -2,7 +2,7 @@
 
 - **Grupo y equipo:** Aplicaciones Web Progresivas 10B — Equipo E03
 - **Repositorio privado del equipo:** https://github.com/Chocotzi/PWA-10B-E03
-- **SHA final (40 caracteres):** `9183ffd13abe99a16987ca25d29d1c0cd96e9966`
+- **SHA final (40 caracteres):** `544c9198da848567f6a062c10841ff9c09cc9720`
 - **Enlace a Actions de ese SHA:** https://github.com/Chocotzi/PWA-10B-E03/actions
 
 > Modalidad: **equipo autorizado, evidencia individual**. Este es un solo archivo con una sección
