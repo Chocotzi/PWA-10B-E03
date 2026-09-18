@@ -1,4 +1,3 @@
-# Public tests: w02-shell-manifest
+# Public tests: w03-service-worker-offline
 
-Ejecuta `bash public-tests/check.sh` desde la raíz del repositorio. Estos checks comprueban el contrato mínimo sin revelar los casos privados.
-
+Ejecuta `bash public-tests/check.sh` desde la raíz del repositorio. Verifica que existan los artefactos de la Semana 3 (service worker, registro, estrategia de caché y pruebas) sin revelar los casos privados.
