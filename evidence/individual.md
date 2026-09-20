@@ -145,44 +145,60 @@ Dado que aún no se implementa un Service Worker con una estrategia de caché (e
 
 ## Benkis Carbajal Hernández
 
-**SHA de mi contribución (rama dev-cleber):**9781e22f7896ba4b1b51d688a8ecfd4bb66db112
+**Estudiante**
 
-**Mi contribución y archivos modificados**
+Benkis Carbajal Hernández
 
-Implementé la pantalla principal de inspecciones y el contenedor compartido de la aplicación.
+**Commit SHA evaluado**3fc35f0605004b840d79ab837134e336517bc8ea
 
-- `src/app/page.tsx`: muestra la navegación de datos y permite forzar los tres estados requeridos mediante la URL: `?state=loading`, `?state=error` y `?state=empty`.
-- `src/components/app-shell.tsx`: incorpora la navegación principal y los landmarks semánticos `header`, `nav`, `main` y `footer`, además del enlace para saltar al contenido.
-- `src/app/globals.css`: agrega diseño responsive, foco visible para navegación por teclado y estilos para los estados de carga, error y vacío.
+**Decisión técnica que puedo explicar**
 
-**Decisión técnica propia**
+Elegí una estrategia de Service Worker con precache atómico, una caché versionada como
+`inspecciones-v1`, limpieza de versiones antiguas durante `activate` y sin `skipWaiting`
+automático. El precache usa `cache.addAll`, por lo que si falta un recurso la instalación completa
+falla y no queda un App Shell a medias. Al activar una versión nueva se eliminan las cachés antiguas
+solo después de que la nueva versión está lista. La nueva versión queda en `waiting` hasta que el
+usuario pulsa "Actualizar"; entonces se envía `SKIP_WAITING`, ocurre `controllerchange` y se recarga
+una sola vez. Así se evita activar una versión incompleta o mezclar recursos de despliegues distintos.
 
-Elegí forzar los estados de interfaz con el parámetro de consulta `state` en la URL, en vez de cambiar una constante del código para cada demostración. Así se pueden revisar manualmente los cuatro escenarios desde el navegador sin editar ni recompilar el proyecto: `/`, `/?state=loading`, `/?state=error` y `/?state=empty`. El parámetro se interpreta en `page.tsx` y los elementos comunes quedan aislados en `AppShell`, evitando repetir la navegación y los landmarks en futuras pantallas.
+**Prueba que ejecuté y resultado real**
 
-**Prueba ejecutada y resultado real**
-
-```bash
-$ node scripts/verify.mjs
-Starter verificable: PASS
-
-$ node node_modules/typescript/bin/tsc --noEmit
-
+```text
+npm run test -- --run
+Test Files  3 passed (3)
+Tests       15 passed (15)
 ```
 
-También se inició el build de Next.js: alcanzó `Compiled successfully`, pero el proceso de comprobación posterior quedó retenido por el entorno de ejecución. Por ello no se declara el build completo como prueba aprobada.
+La revisión manual se realizó en DevTools: se activó `Network -> Offline`, se recargó `/` y la lista
+de inspecciones permaneció visible. Después se abrió una URL no cacheada y se mostró `/offline` con el
+mensaje "Sin conexión". El mensaje `[sw] navigation request failed` apareció en consola durante la
+simulación de red caída, como exige la observabilidad del Service Worker.
 
-**Qué comprueba y qué no**
+**Limitación o fallo diagnosticado**
 
-- **Comprueba:** Que el proyecto conserva los requisitos verificables del starter y que los archivos TypeScript modificados no presentan errores de tipos.
-- **No comprueba:** Un recorrido automatizado de teclado ni una auditoría automatizada de contraste. Esas revisiones deben hacerse manualmente en el navegador con Tab y las herramientas de accesibilidad.
+Durante la prueba inicial, las tres pruebas del Service Worker fallaron con `Failed to parse URL
+from /`. El problema estaba en el arnés de Vitest: usaba el `fetch` real de Node para rutas relativas,
+en lugar del `fetchMock` del navegador simulado. Corregí el arnés para que `cache.addAll` use el
+fetch simulado y después las pruebas quedaron en verde. Además, la instalación real depende de que
+exista `/offline`; si esa ruta no está disponible, el precache falla de forma intencional.
 
-**Una limitación**
+**Cambio que podría defender o modificar en vivo**
 
-Los estados de carga, error y vacío son demostrativos: no dependen todavía de una solicitud real a una API. En consecuencia, el botón “Reintentar” vuelve a la vista normal, pero aún no repite una operación de red ni informa de errores de servidor reales.
+Puedo subir `CACHE_VERSION` de `inspecciones-v1` a `inspecciones-v2` cuando cambien los recursos del
+precache. Defendería que la caché anterior debe conservarse mientras la nueva está en `waiting` y
+eliminarse únicamente en `activate`. Si se cambia network-first por cache-first para HTML, se rompe
+la expectativa de que una navegación con conexión consulte primero la versión actualizada; esa
+decisión se comprobaría con las pruebas de navegación offline y la revisión manual en DevTools.
 
-**Uso de IA (herramienta, propósito, partes influidas y verificación humana)**
+**Uso declarado de IA**
 
-- **Herramienta:** Codex (GPT-5).
-- **Propósito:** Apoyo para estructurar `AppShell`, proponer los estados manuales por URL y redactar estilos accesibles y responsive.
-- **Partes influidas:** `src/app/page.tsx`, `src/components/app-shell.tsx`, `src/app/globals.css` y esta sección de evidencia.
-- **Verificación humana:** Se revisaron los cambios y se ejecutaron `node scripts/verify.mjs` y `node node_modules/typescript/bin/tsc --noEmit`; ambos terminaron correctamente. Antes de entregar se debe revisar en el navegador el orden de Tab, los landmarks y las cuatro URLs de estado.
+- **Herramienta:** Codex.
+- **Propósito:** Apoyar la implementación del Service Worker, el registro seguro en el cliente, el
+  arnés determinista de Vitest, las pruebas offline y la documentación de la estrategia de caché.
+- **Fragmentos influidos:** `public/sw.js`, `src/lib/pwa/register-service-worker.ts`,
+  `src/components/pwa/ServiceWorkerManager.tsx`, `src/app/offline/page.tsx`,
+  `tests/helpers/sw-harness.ts`, `tests/offline.spec.ts`, `tests/service-worker.spec.ts`,
+  `docs/cache-strategy.md` y esta sección.
+- **Validación humana:** Revisé el diff, ejecuté las pruebas automatizadas, comprobé la sintaxis del
+  Service Worker, ejecuté el build y verifiqué manualmente en DevTools el modo Offline, la caché
+  `inspecciones-v1`, el fallback `/offline` y el aviso de actualización.

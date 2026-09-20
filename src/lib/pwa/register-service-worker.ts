@@ -7,16 +7,48 @@ export function isServiceWorkerSupported(): boolean {
 }
 
 export async function registerServiceWorker(
-  _options: RegisterOptions = {}
+  options: RegisterOptions = {}
 ): Promise<ServiceWorkerRegistration | null> {
-  // TODO S3.3 (Cleber): registrar /sw.js solo en producción, manejar updatefound,
-  // console.error en fallos, nunca lanzar ni bloquear la carga.
   if (!isServiceWorkerSupported() || process.env.NODE_ENV !== "production") {
     return null;
   }
-  return null;
+
+  try {
+    const registration = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+    registration.addEventListener("updatefound", () => {
+      const installing = registration.installing;
+      if (!installing) {
+        return;
+      }
+
+      installing.addEventListener("statechange", () => {
+        if (installing.state === "installed" && navigator.serviceWorker.controller) {
+          options.onUpdateAvailable?.(registration);
+        }
+      });
+    });
+
+    return registration;
+  } catch (error) {
+    console.error("[pwa] registro fallido", error);
+    return null;
+  }
 }
 
 export function activateWaitingServiceWorker(registration: ServiceWorkerRegistration): void {
-  registration.waiting?.postMessage({ type: "SKIP_WAITING" });
+  if (!registration.waiting || typeof window === "undefined") {
+    return;
+  }
+
+  let reloaded = false;
+  const reloadOnce = () => {
+    if (reloaded) {
+      return;
+    }
+    reloaded = true;
+    window.location.reload();
+  };
+
+  navigator.serviceWorker.addEventListener("controllerchange", reloadOnce, { once: true });
+  registration.waiting.postMessage({ type: "SKIP_WAITING" });
 }
