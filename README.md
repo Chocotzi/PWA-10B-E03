@@ -127,7 +127,7 @@ Para verlo:
 
 | Campo | Valor |
 | --- | --- |
-| Tag y SHA de entrega | `s03-entrega` — `<pendiente>` |
+| Tag y SHA de entrega | `s03-entrega` — `6d0873eac85bc2d926e283f1c06ce9d9a471259a` |
 | Actions | <https://github.com/Chocotzi/PWA-10B-E03/actions> (archivo `week-03-w03-service-worker-offline.yml`; en la lista aparece con el mismo nombre que el de la Semana 2) |
 | Evidencia individual | [`evidence/individual.md`](evidence/individual.md) |
 | Estrategia de caché | [`docs/cache-strategy.md`](docs/cache-strategy.md) |
