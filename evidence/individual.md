@@ -1,13 +1,11 @@
-# Evidencia individual — Semana 2
+# Evidencia individual — Semana 3
 
 - **Grupo y equipo:** Aplicaciones Web Progresivas 10B — Equipo E03
 - **Repositorio privado del equipo:** https://github.com/Chocotzi/PWA-10B-E03
-- **SHA final (40 caracteres):** `1571f6664eab2ea16395ffa8bfac277934a66871`
-  (nota: un commit no puede contener su propio hash, así que este campo registra el hash de
-  su *commit padre* — el mismo patrón de Semana 1, bab3147→5003d05. **El SHA real de entrega
-  de Semana 2 es el de este commit de cierre que agrega esta nota** (el mensaje de ese commit
-  lo dice explícitamente), no el valor `1571f66…` escrito arriba. Para el hash exacto: es el
-  commit al que apunta el tag `s02-entrega` y `git log -1 --format=%H` sobre `main`.)
+- **SHA final (40 caracteres):** `<pendiente>`
+  (nota: un commit no puede contener su propio hash, así que este campo se llena después del
+  commit de cierre con el SHA del commit al que apunta el tag `s03-entrega`, que se obtiene con
+  `git log -1 --format=%H` sobre `main`.)
 - **Enlace a Actions de ese SHA:** https://github.com/Chocotzi/PWA-10B-E03/actions
 
 > Modalidad: **equipo autorizado, evidencia individual**. Este es un solo archivo con una sección
@@ -18,82 +16,137 @@
 
 ## Carlos Andrés Arriaga Márquez
 
-**SHA de mi contribución (rama dev-cleber):** `<pendiente, se llena con: git rev-parse HEAD>`
+**Estudiante**
 
-**Mi contribución y enlace al archivo, commit o revisión**
+Carlos Andrés Arriaga Márquez
 
-Test del manifiesto y verificación de la cobertura de CI de Semana 2:
-- Creación de `tests/manifest.spec.mjs`: parsea `public/manifest.webmanifest` como JSON, valida que `name`, `start_url`, `display` y `scope` existan y no estén vacíos, que `icons` sea un arreglo con al menos 3 entradas, que cada ícono declarado exista realmente como archivo en `public/`, y que `src/app/layout.tsx` enlace el manifiesto.
-- Actualización del script `test` en `package.json` para encadenar `tests/starter.spec.mjs` y `tests/manifest.spec.mjs`.
-- Verificación de que `.github/workflows/week-01-starter-feedback.yml` (paso "Ejecutar pruebas") sigue cubriendo Semana 2 sin cambios, ya que corre `npm test` y este ahora ejecuta ambos specs.
+**Commit SHA evaluado**
 
-Enlace: commit `<pendiente>` en `https://github.com/Chocotzi/PWA-10B-E03` (archivos: `tests/manifest.spec.mjs`, `package.json`, `evidence/individual.md`).
+`d9faaac9319a5722ee8a136b504e59c2e10b8fed`, salida de `git log -1 --format=%H` antes de commitear.
+Es el commit de Benkis sobre el que construí mi trabajo. Un commit no puede contener su propio hash,
+igual que en las semanas 1 y 2: mis cambios (pruebas, arnés, README y esta sección) van en el commit
+de cierre al que apunta el tag `s03-entrega`.
 
-**Una decisión que explico**
+**Decisión técnica que puedo explicar**
 
-Se decidió no usar Vitest para el test del manifiesto y mantener `node:assert/strict`, en el mismo estilo que `tests/starter.spec.mjs`. El issue de Linear (APL-6) marca explícitamente "riesgo Vitest" y no se justificaba introducir una dependencia nueva a mitad de semana solo para una prueba adicional. Esto es consistente con la decisión de Semana 1 de mantener el stack mínimo (Next.js + Node nativo, sin frameworks de testing).
+Probé el Service Worker ejecutando el `public/sw.js` real, sin modificarlo, dentro de `node:vm` con un
+`self`, un `caches` y un `fetch` simulados (`tests/helpers/sw-harness.ts`), en lugar de abrir un
+navegador real con Playwright o Puppeteer. Lo elegí por tres razones:
 
-**Comando o prueba ejecutada y resultado real**
+- **Determinismo.** La red es una función que controlo (`goOffline()`, `respond()`), así que no hay
+  esperas, reintentos ni pruebas intermitentes.
+- **Sin servicios nuevos.** No se instala ningún navegador ni se levanta `next start`; el workflow de
+  CI solo necesita `npm ci`.
+- **Velocidad.** Las 39 pruebas tardan unos 4 segundos en mi equipo.
 
-```bash
-$ npm test
+Como el archivo que se prueba es el mismo que se sirve, romper una regla del worker rompe una prueba.
+El costo es que la simulación no es un navegador, por eso la revisión manual en DevTools que describe
+el README sigue siendo necesaria.
+
+**Prueba que ejecuté y resultado real**
+
+Completé `tests/service-worker.spec.ts` hasta los 11 casos del contrato y `tests/offline.spec.ts`
+hasta los 8: 5 del registro y 3 de consulta offline de extremo a extremo. Antes de mi trabajo la
+suite tenía 15 pruebas (3 del worker, 4 de registro y 8 del manifest); ahora tiene 39.
+
+```text
+$ npm run test -- --run
+
 > pwa-inspecciones-laboratorio@0.1.0 test
-> node tests/starter.spec.mjs && node tests/manifest.spec.mjs
+> node tests/starter.spec.mjs && vitest run --run
 
 starter.spec.mjs: PASS
-manifest.spec.mjs: PASS
 
-$ npm run build
-> pwa-inspecciones-laboratorio@0.1.0 build
-> next build
+ RUN  v3.2.7 C:/Users/carly/OneDrive/Desktop/PWA-inspecciones-arriaga-marquez-carlos-andres
 
-▲ Next.js 16.3.4 (Turbopack)
-✓ Compiled successfully in 43s
-  Running TypeScript ...
-  Finished TypeScript in 19.5s ...
-  Collecting page data using 4 workers ...
-  Generating static pages using 4 workers (0/3) ...
-✓ Generating static pages using 4 workers (3/3) in 5.2s
-  Finalizing page optimization ...
+ ✓ tests/manifest.spec.ts (8 tests) 13ms
+ ✓ tests/offline.spec.ts (10 tests) 22ms
+ ✓ tests/service-worker.spec.ts (21 tests) 58ms
 
-Route (app)
-┌ ƒ /
-└ ○ /_not-found
-
-○  (Static)   prerendered as static content
-ƒ  (Dynamic)  server-rendered on demand
-
-$ npm run verify
-> pwa-inspecciones-laboratorio@0.1.0 verify
-> node scripts/verify.mjs
-
-Starter verificable: PASS
-Reporte: reports/verification.json
+ Test Files  3 passed (3)
+      Tests  39 passed (39)
+   Start at  23:27:30
+   Duration  4.16s (transform 238ms, setup 0ms, collect 1.39s, tests 93ms, environment 1ms, prepare 4.20s)
 ```
 
-**Qué comprueba y qué no**
+`npm run build` termina sin errores y muestra `/offline` como ruta estática:
 
-- **Comprueba:** Que `public/manifest.webmanifest` tiene los campos mínimos requeridos y al menos 3 íconos, que cada ícono referenciado existe físicamente en `public/`, y que `src/app/layout.tsx` efectivamente enlaza el manifiesto; también que `npm test`, `npm run build` y `npm run verify` corren de punta a punta sin errores sobre el estado actual de `dev-cleber`.
-- **No comprueba:** El contenido visual ni la validez semántica del manifiesto en un navegador real (por ejemplo, si Chrome DevTools lo acepta como instalable), el tamaño o resolución real de los archivos de ícono, ni el comportamiento de los estados `loading`/`error`/`empty` de `page.tsx`, que son responsabilidad de la Actividad 2.2.
+```text
+Route (app)
+┌ ƒ /
+├ ○ /_not-found
+└ ○ /offline
+```
 
-**Una limitación**
+Para comprobar que las pruebas detectan regresiones hice una prueba de mutación manual. Con un script
+temporal, que no está en el repositorio, rompí `public/sw.js` y `register-service-worker.ts` de 34
+maneras distintas, una regla cada vez: por ejemplo, quitar la comprobación de `no-store` o volver
+cache-first la navegación. En las 34 falló la prueba del caso correspondiente. Después restauré los
+archivos y `git diff` de ambos quedó vacío.
 
-Al revisar el trabajo de Semana 2 encontré que `src/app/page.tsx` ahora recibe `searchParams` como `Promise<{ state?: string }>` para forzar los tres estados de interfaz por query string (`?state=loading|error|empty`). Esto obliga a Next.js a tratar la ruta `/` como dinámica: en la tabla `Route (app)` del build de arriba aparece `ƒ /` en lugar de `○ /`, es decir, dejó de ser contenido estático prerenderizado. Esto contradice RNF-04 de `docs/requirements.md` ("La ruta `/` se entrega como contenido estático prerenderizado"). No corregí esto unilateralmente porque el código pertenece a la Actividad 2.2 de Benkis; lo dejo documentado como hallazgo de esta semana. Queda como pendiente de decisión de equipo para la próxima semana, ya sea aceptar el cambio de RNF-04 o revertir `page.tsx` a un Server Component estático con el manejo de estado movido al cliente (por ejemplo, leyendo `useSearchParams` en un componente cliente en vez de recibir `searchParams` como prop del servidor).
+**Limitación o fallo diagnosticado**
 
-**Uso de IA (herramienta, propósito, partes influidas, verificación humana)**
+Al escribir el caso 2 (la instalación debe fallar completa si un recurso del precache responde
+error), las tres pruebas fallaron contra el arnés original:
 
-- **Herramienta:** Claude Code (Anthropic), modelo Claude Sonnet 5.
-- **Propósito:** Redacción de `tests/manifest.spec.mjs`, ajuste del script `test` en `package.json`, diagnóstico del cambio de renderizado estático a dinámico en `/` a partir de la salida de `npm run build`, y borrador de esta sección.
-- **Partes influidas:** `tests/manifest.spec.mjs`, `package.json` (script `test`) y esta sección de `evidence/individual.md`.
-- **Verificación humana:** Revisé y ejecuté yo mismo `npm test`, `npm run build` y `npm run verify` antes de commitear, y confirmé manualmente en el código de `src/app/page.tsx` que `searchParams` está tipado como `Promise<{ state?: string }>`, causa raíz del cambio de `○ /` a `ƒ /`.
+```text
+× la instalación falla completa si un recurso del precache responde 500
+  → / no debe quedar guardado tras una instalación fallida: expected Response { status: 200, ... } to be undefined
+```
 
-**Corrección posterior (mismo día, antes del cierre de entrega)**
+El fallo no estaba en `public/sw.js`, porque `install` sí rechazaba: pasó la aserción `rejects.toThrow()`.
+Estaba en el arnés. Su `cache.addAll` guardaba cada respuesta en cuanto llegaba, así que cuando
+`/offline` fallaba, `/` y los demás recursos ya estaban guardados. El `Cache.addAll` real es atómico:
+obtiene todas las respuestas y solo las guarda si todas son correctas. Corregí el arnés para obtener
+primero todo y guardar después, y las tres pruebas pasaron. Con el arnés original no se podía
+distinguir una instalación atómica de una parcial, aunque el título de la prueba existente decía
+"atómica".
 
-Tras cerrar y tagear la Semana 2 (`s02-entrega` sobre `6d4424c`), detecté un desajuste con la rúbrica oficial del profesor (`ASSIGNMENT.md` / `evaluation.json` del kit `PWA-w02-kit-estudiante.zip`): AC-02 exige literalmente que exista `tests/manifest.spec.ts`, y AC-03 corre `npm run test --if-present -- --run` sobre el workflow oficial `week-02-w02-shell-manifest.yml`. La versión anterior (`tests/manifest.spec.mjs` con `node:assert/strict`, sin ese workflow) no satisfacía ninguno de los dos. Corregí reemplazando el test por `tests/manifest.spec.ts` con Vitest (mismas verificaciones, mismo alcance, solo cambia el runner), agregué `vitest.config.ts` (con `include` restringido a `tests/**/*.spec.ts` para no tocar `tests/starter.spec.mjs`), agregué `.github/workflows/week-02-w02-shell-manifest.yml` sin modificar `week-01-starter-feedback.yml`, y actualicé `public-tests/check.sh`, `public-tests/README.md`, `ASSIGNMENT.md` y `evaluation.json` a las versiones oficiales del kit de Semana 2. El tag `s02-entrega` se movió al commit de esta corrección.
+Segundo hallazgo, que no corregí porque el código es de Benkis y la decisión es del equipo. Con
+`npm start` y `curl -I`, la ruta `/` responde
+`Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate`, porque es dinámica desde la
+Semana 2 (el pendiente de RNF-04). Como el worker no guarda respuestas `no-store`, la copia offline de
+`/` es la que se tomó al instalar y no se actualiza al navegar con red. Mis pruebas simuladas no lo
+detectan porque su respuesta simulada no trae ese encabezado. Lo comprobé en los encabezados del
+servidor, no en un navegador. Queda una decisión de equipo: volver `/` estática o ajustar la regla.
+
+**Cambio que podría defender en vivo**
+
+Cambiar en `public/sw.js` la estrategia de navegación de network-first a cache-first: en el listener
+`fetch`, sustituir `networkFirstNavigation(request)` por `cacheFirst(request)`. Con ese cambio fallan
+5 pruebas: la que exige responder la red y actualizar la copia, la del respaldo `/offline` sin copia,
+la del registro de errores de navegación y dos de consulta offline de extremo a extremo. Lo defendería
+como un error, porque las inspecciones cambian y con cache-first el coordinador vería datos viejos
+aunque tenga conexión. Revertir el cambio devuelve la suite a verde.
+
+**Uso declarado de IA**
+
+- **Herramienta:** Claude Code (Anthropic). Claude Fable 5.1 preparó la infraestructura de la semana
+  (workflow, check público, `verify.mjs` y esqueletos). Claude Sonnet 5 integró la rama de Benkis,
+  amplió las pruebas, escribió la sección del README y redactó esta sección.
+- **Propósito:** Completar las suites de pruebas hasta el contrato, ampliar el arnés de simulación,
+  hacer la prueba de mutación, comprobar los encabezados reales de la ruta `/` y redactar la
+  documentación de la semana.
+- **Fragmentos influidos:** `tests/service-worker.spec.ts`, `tests/offline.spec.ts`,
+  `tests/helpers/sw-harness.ts`, `README.md`, `.github/workflows/week-03-w03-service-worker-offline.yml`,
+  `public-tests/check.sh`, `public-tests/README.md`, `scripts/verify.mjs` y esta sección. El contenido
+  final de `public/sw.js`, `register-service-worker.ts`, `ServiceWorkerManager.tsx` y `/offline` es de
+  Benkis; la IA no lo escribió.
+- **Validación humana:** Claude Code ejecutó los comandos, la prueba de mutación y la comprobación de
+  encabezados en mi equipo. Antes de commitear reviso el diff completo y repito
+  `npm run test -- --run` y `npm run build`.
+
+**Nota sobre la contribución del equipo en S3**
+
+La implementación técnica de esta semana (service worker, registro en cliente, página
+offline y las pruebas ampliadas) fue realizada por Benkis Carbajal y por mí; Cleber
+Bolaños no tuvo una contribución de código verificable en el repositorio para S3 y su
+sección de evidencia individual corresponde a la Semana 2. Lo dejamos así antes que
+declarar una contribución que no ocurrió.
 
 ## Cleber Antonio Bolaños Moreno
 
-**SHA de mi contribución (rama dev-cleber):** 2cd9303c038cd11c77fa1b88e5dfac9e88c67863
+**SHA de mi contribución — Semana 2 (rama dev-cleber):** 2cd9303c038cd11c77fa1b88e5dfac9e88c67863
 
 
 **Mi contribución y enlace al archivo, commit o revisión**
@@ -149,7 +202,11 @@ Dado que aún no se implementa un Service Worker con una estrategia de caché (e
 
 Benkis Carbajal Hernández
 
-**Commit SHA evaluado**3fc35f0605004b840d79ab837134e336517bc8ea
+**Commit SHA evaluado**d9faaac9319a5722ee8a136b504e59c2e10b8fed
+
+Nota: `d9faaac…` es el commit de mi contribución en `dev-benkis`. Un commit no puede contener su
+propio hash, igual que en las semanas 1 y 2, así que el SHA de entrega es el del commit de cierre
+al que apunta el tag `s03-entrega`, que tiene este commit como ancestro.
 
 **Decisión técnica que puedo explicar**
 
@@ -166,8 +223,10 @@ una sola vez. Así se evita activar una versión incompleta o mezclar recursos d
 ```text
 npm run test -- --run
 Test Files  3 passed (3)
-Tests       15 passed (15)
+Tests       39 passed (39)
 ```
+
+Desglose por archivo: `manifest` 8, `offline` 10 y `service-worker` 21 pruebas.
 
 La revisión manual se realizó en DevTools: se activó `Network -> Offline`, se recargó `/` y la lista
 de inspecciones permaneció visible. Después se abrió una URL no cacheada y se mostró `/offline` con el
