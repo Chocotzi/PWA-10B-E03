@@ -133,3 +133,18 @@ Para verlo:
 | Estrategia de caché | [`docs/cache-strategy.md`](docs/cache-strategy.md) |
 | Pruebas | [`tests/service-worker.spec.ts`](tests/service-worker.spec.ts), [`tests/offline.spec.ts`](tests/offline.spec.ts) |
 
+## Semana 4 — Renderizado CSR y SSR
+
+La actividad agrega el listado `/inspecciones`, el detalle `/inspecciones/[id]`, un componente de
+carga y la documentación de la decisión de renderizado. Los artefactos se verifican con:
+
+```bash
+npm ci
+npm run verify
+npm run test -- --run
+npm run build
+bash public-tests/check.sh
+```
+
+Los datos siguen siendo sintéticos. La ruta de detalle usa `await params` porque Next.js 16 expone
+los parámetros dinámicos como una promesa.

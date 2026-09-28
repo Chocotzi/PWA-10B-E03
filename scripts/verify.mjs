@@ -17,7 +17,12 @@ const required = [
   "src/lib/pwa/register-service-worker.ts",
   "docs/cache-strategy.md",
   "tests/service-worker.spec.ts",
-  "tests/offline.spec.ts"
+  "tests/offline.spec.ts",
+  "src/app/inspecciones/page.tsx",
+  "src/app/inspecciones/[id]/page.tsx",
+  "src/components/loading-state.tsx",
+  "docs/rendering-decision.md",
+  "tests/rendering.spec.ts"
 ];
 
 const missing = required.filter((file) => !existsSync(resolve(root, file)));
@@ -39,4 +44,3 @@ if (missing.length > 0) {
 
 console.log("Starter verificable: PASS");
 console.log(`Reporte: ${report}`);
-

@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 2,
+  "assignmentId": "w04-csr-ssr",
+  "schedule": {
+    "week": 4,
+    "partial": 1,
+    "maxDurationDays": 7
+  },
+  "grading": {
+    "partialContributionPoints": 8,
+    "bucket": "continuous_activity"
+  },
+  "difficulty": {
+    "level": 7,
+    "justification": "Integra el mínimo oficial con restricciones de ingeniería, evidencia ejecutable, trade-offs y recuperación dentro de una semana."
+  },
+  "traceability": {
+    "officialOutcome": "Unidad II: renderizado del lado del cliente y del servidor; pantallas home, splash y carga.",
+    "institutionalMinimum": "Unidad II: renderizado del lado del cliente y del servidor; pantallas home, splash y carga.",
+    "engineeringTarget": "Implementar y comparar rutas CSR y SSR para el mismo dominio, midiendo impacto en carga, accesibilidad y complejidad.",
+    "upliftBasis": "La actividad agrega criterios de calidad, automatización, seguridad, observabilidad y evidencia individual sin alterar el alcance oficial."
+  },
+  "competencies": {
+    "primary": "C04",
+    "cumulative": [
+      "C03",
+      "C10"
+    ]
+  },
+  "reproducibility": {
+    "verifyCommand": "make verify",
+    "runCommand": "npm run dev"
+  },
+  "ci": {
+    "required": true,
+    "platform": "github_actions",
+    "mode": "hybrid",
+    "workflowPath": ".github/workflows/week-04-w04-csr-ssr.yml",
+    "setupCommands": [
+      "npm ci --ignore-scripts --no-audit --no-fund"
+    ],
+    "artifactPaths": [
+      "evaluation-result.json",
+      "coverage/",
+      "test-results/"
+    ]
+  },
+  "automationPolicy": {
+    "automaticOrSemiAutomaticTargetPercent": 90,
+    "maxManualPointsPercent": 10,
+    "manualReviewBudgetMinutes": 5,
+    "manualException": {
+      "instructorApproved": false,
+      "justification": "Sin excepción aprobada; revisión humana solo por bandera."
+    }
+  },
+  "qualityGates": [
+    "Instalación limpia y build reproducible.",
+    "Pruebas deterministas con datos sintéticos.",
+    "Reporte de resultados y artefactos de CI.",
+    "Sin secretos ni PII."
+  ],
+  "checks": [
+    {
+      "id": "AC-01",
+      "type": "automatic",
+      "points": 2,
+      "evidence": "Instalación limpia y build completan.",
+      "command": "test -f package.json && (test -f package-lock.json || test -f pnpm-lock.yaml || test -f yarn.lock) && npm run build --if-present"
+    },
+    {
+      "id": "AC-02",
+      "type": "automatic",
+      "points": 3,
+      "evidence": "Los artefactos declarados para la actividad existen.",
+      "command": "test -e 'src/app/inspecciones/page.tsx' && test -e 'src/app/inspecciones/[id]/page.tsx' && test -e 'src/components/loading-state.tsx' && test -e 'docs/rendering-decision.md' && test -e 'tests/rendering.spec.ts'"
+    },
+    {
+      "id": "AC-03",
+      "type": "automatic",
+      "points": 2,
+      "evidence": "Existe una suite ejecutable de pruebas.",
+      "command": "test -d tests && find tests -type f -print -quit | grep -q . && npm run test --if-present -- --run"
+    },
+    {
+      "id": "AC-04",
+      "type": "semi_automatic",
+      "points": 1,
+      "evidence": "El reporte y la evidencia individual están presentes para inspección.",
+      "command": "test -f README.md && test -f evidence/individual.md"
+    }
+  ],
+  "individualEvidence": {
+    "required": true,
+    "signals": [
+      "evidence/individual.md",
+      "commit hash evaluado",
+      "decisión técnica explicada",
+      "prueba ejecutada y limitación"
+    ]
+  },
+  "antiGaming": {
+    "risks": [
+      "crear solo archivos vacíos",
+      "ajustar la solución a nombres de archivos",
+      "copiar evidencia sin comprenderla"
+    ],
+    "controls": [
+      "pruebas de comportamiento",
+      "casos negativos privados",
+      "commit fijado",
+      "defensa individual"
+    ]
+  },
+  "result": {
+    "totalPoints": 8,
+    "automaticPoints": 7,
+    "semiAutomaticPoints": 1,
+    "manualPoints": 0
+  }
+}
