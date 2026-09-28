@@ -155,3 +155,85 @@ El listado y el detalle consumen la fuente única `src/lib/inspections-repositor
 respuestas llevan `Cache-Control: no-store`. Para demostraciones y pruebas deterministas se pueden
 usar los parámetros temporales `?simular=lento` y `?simular=error`; son solo para demostración y
 pruebas, no representan estados reales del origen de datos.
+
+## Semana 4 — Renderizado CSR/SSR
+
+### Setup
+
+El proyecto declara Node mediante `.nvmrc` con la versión `20` y mediante `engines` en
+`package.json`. Desde la raíz instala las dependencias exactas con:
+
+```bash
+npm ci
+```
+
+### Ejecución
+
+Inicia el entorno local con:
+
+```bash
+npm run dev
+```
+
+Rutas principales:
+
+- `/inspecciones`: listado CSR; el HTML inicial muestra la carga y el navegador consulta la API.
+- `/inspecciones/inspection-002`: detalle SSR.
+- `/inspecciones/inspection-999`: detalle inexistente; muestra el estado 404 correspondiente.
+- `/inspecciones?simular=lento`: muestra la carga durante la espera configurada.
+- `/inspecciones?simular=error`: muestra el error y permite reintentar sin simulación.
+
+### Verificación
+
+El equivalente exacto de `make verify` es:
+
+```bash
+make verify
+npm run verify
+npm run test -- --run
+npm run build
+bash public-tests/check.sh
+```
+
+En Windows sin `make`, ejecuta `npm run verify`. Si no está disponible `rg`, el equivalente del
+escaneo es:
+
+```bash
+git grep -n -i -E '(api[_-]?key|secret|password|token)'
+```
+
+### Medición
+
+Con el servidor de producción iniciado, mide el HTML inicial del listado CSR y del detalle SSR:
+
+```bash
+npm run build
+npm start
+```
+
+En otra terminal ejecuta:
+
+```bash
+npm run measure:rendering
+```
+
+El comando genera `reports/rendering-metrics.json` con ruta, tipo de renderizado, estado HTTP,
+tamaño de respuesta y duración de cada solicitud.
+
+### Supuestos y límites
+
+La aplicación usa exclusivamente datos sintéticos. Los parámetros `?simular=lento` y
+`?simular=error` existen solo para demostración y pruebas deterministas. Los límites de cantidad,
+formato de fechas, identificadores y longitud de texto están documentados en la sección 8 de
+[`docs/rendering-decision.md`](docs/rendering-decision.md).
+
+### Evidencia
+
+| Elemento | Ubicación |
+| --- | --- |
+| SHA evaluado | Carlos lo completa en S4.13 |
+| Corrida de Actions S4 | Carlos agrega el enlace en S4.13 |
+| Artefacto de CI | `academic-evidence-w04-csr-ssr` |
+| Decisión de renderizado | [`docs/rendering-decision.md`](docs/rendering-decision.md) |
+| Métricas | [`reports/rendering-metrics.json`](reports/rendering-metrics.json) |
+| Evidencia individual | [`evidence/individual.md`](evidence/individual.md) |

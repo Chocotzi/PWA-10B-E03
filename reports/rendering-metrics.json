@@ -1,0 +1,52 @@
+{
+  "baseUrl": "http://localhost:3000",
+  "measuredAt": "2026-09-28T05:07:58.541Z",
+  "measurements": [
+    {
+      "route": "/inspecciones",
+      "kind": "csr-shell",
+      "status": 200,
+      "htmlBytes": 9011,
+      "containsSyntheticData": false,
+      "ttfbMs": {
+        "median": 7.38,
+        "p90": 42.37
+      },
+      "samples": [
+        42.37,
+        29.19,
+        28.71,
+        54.47,
+        36.22,
+        4.59,
+        4.88,
+        6.4,
+        7.38,
+        6.98
+      ]
+    },
+    {
+      "route": "/inspecciones/inspection-002",
+      "kind": "ssr-detail",
+      "status": 200,
+      "htmlBytes": 10936,
+      "containsSyntheticData": true,
+      "ttfbMs": {
+        "median": 13.84,
+        "p90": 16.5
+      },
+      "samples": [
+        16.5,
+        14.32,
+        21.21,
+        15.75,
+        14,
+        11.77,
+        13.84,
+        11.09,
+        11.96,
+        10.44
+      ]
+    }
+  ]
+}

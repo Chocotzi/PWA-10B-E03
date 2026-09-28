@@ -17,6 +17,7 @@ export function LoadingState({
       aria-busy="true"
       data-testid="loading-state"
     >
+      <h1 className="sr-only">Inspecciones</h1>
       <p className="loading-state-label">{label}</p>
       <div className="inspection-grid" aria-hidden="true">
         {Array.from({ length: skeletonRows }, (_, index) => (

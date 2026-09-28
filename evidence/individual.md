@@ -1,16 +1,181 @@
-# Evidencia individual — Semana 3
+# Evidencia individual — Semana 4
+
+> Evidencia preparada sobre el SHA local de congelamiento disponible en este checkout. El SHA final
+> publicado por Carlos debe corresponder al commit evaluado por el equipo.
+
+## Semana 4 — Carlos Andrés Arriaga Márquez
+
+**Estudiante**
+
+Carlos Andrés Arriaga Márquez
+
+**Commit SHA evaluado**
+
+`e54f5a837dc5b835f412b2b47fe93d51a5f4c880`
+
+**Decisión técnica que puedo explicar**
+
+El listado `/inspecciones` es CSR porque necesita interacción frecuente: carga los datos desde el
+navegador y permite filtrar sin volver a solicitar la lista. El detalle `/inspecciones/[id]` es SSR
+porque es una consulta puntual que debe llegar con la inspección visible en el HTML inicial, ser
+compartible y poder revisarse sin depender de JavaScript de datos. No se eligió SSG porque los datos
+cambiarán cuando exista sincronización en S5. El Server Component llama directamente a
+`getInspectionById` porque comparte la fuente de datos y evita una petición HTTP innecesaria a la
+propia API durante el renderizado del servidor.
+
+**Prueba que ejecuté y resultado real**
+
+```text
+npm run measure:rendering
+Rendering metrics written to reports/rendering-metrics.json
+
+/inspecciones: status 200, htmlBytes 9011, containsSyntheticData false,
+TTFB median 7.38 ms, p90 42.37 ms.
+/inspecciones/inspection-002: status 200, htmlBytes 10936,
+containsSyntheticData true, TTFB median 13.84 ms, p90 16.50 ms.
+
+curl.exe -s -o NUL -w "HTTP %{http_code}\n" http://localhost:3000/inspecciones/inspection-999
+HTTP 200
+```
+
+La métrica confirma que el listado no lleva datos en el HTML inicial y que el detalle sí. La
+respuesta 200 para el identificador inexistente quedó registrada como incidencia, no como resultado
+aprobado.
+
+**Limitación o fallo diagnosticado**
+
+La variabilidad del TTFB local fue visible entre dos corridas: el listado pasó de una mediana de
+7.38 ms a 9.10 ms y el detalle de 13.84 ms a 15.16 ms. Además, la comprobación del detalle
+`inspection-999` devolvió 200 en el servidor iniciado desde este checkout, aunque el contrato exige
+404; debe revisarse el manejo de `notFound()` antes del cierre final.
+
+**Cambio que podría defender o modificar en vivo**
+
+Podría cambiar el detalle a `generateStaticParams`, pero entonces el build generaría copias para los
+ids conocidos y no representaría bien los datos que cambiarán en S5. La ruta dejaría de aparecer como
+`ƒ Dynamic` y una inspección agregada después del build no quedaría actualizada automáticamente.
+
+**Uso declarado de IA**
+
+- **Herramienta:** Codex.
+- **Propósito:** apoyar la comparación CSR/SSR, la generación del script de medición y la redacción de la decisión técnica.
+- **Fragmentos influidos:** `scripts/measure-rendering.mjs`, `docs/rendering-decision.md`, pruebas de renderizado y esta sección.
+- **Validación humana:** revisé los archivos, ejecuté el build, repetí la medición, comprobé el HTML inicial y ejecuté la petición HTTP del identificador inexistente.
+
+## Semana 4 — Cleber Antonio Bolaños Moreno
+
+**Estudiante**
+
+Cleber Antonio Bolaños Moreno
+
+**Commit SHA evaluado**
+
+`e54f5a837dc5b835f412b2b47fe93d51a5f4c880`
+
+**Decisión técnica que puedo explicar**
+
+El detalle usa SSR porque la información de una inspección debe estar disponible desde la primera
+respuesta, mientras que el listado usa CSR para permitir filtros locales y recuperación interactiva.
+SSG no se eligió porque la sincronización futura puede cambiar los registros. El Server Component
+lee el repositorio directamente para evitar una llamada HTTP al mismo servidor y conservar una sola
+fuente de datos.
+
+**Prueba que ejecuté y resultado real**
+
+```text
+npm run measure:rendering
+Rendering metrics written to reports/rendering-metrics.json
+
+CSR: 9011 bytes, sin dato sintético en HTML, mediana 7.38 ms, p90 42.37 ms.
+SSR: 10936 bytes, con dato sintético en HTML, mediana 13.84 ms, p90 16.50 ms.
+
+curl.exe -s -o NUL -w "HTTP %{http_code}\n" http://localhost:3000/inspecciones/inspection-999
+HTTP 200
+```
+
+**Limitación o fallo diagnosticado**
+
+La respuesta observada para `inspection-999` fue 200 en lugar de 404. Es una incidencia pendiente de
+revisión en el manejo de la página no encontrada y no debe presentarse como prueba exitosa.
+
+**Cambio que podría defender o modificar en vivo**
+
+Podría mover el detalle a CSR, pero el HTML inicial dejaría de contener “Laboratorio de Electrónica”
+y se perdería la comparación exigida entre listado y detalle.
+
+**Uso declarado de IA**
+
+- **Herramienta:** Codex.
+- **Propósito:** apoyar la documentación y la revisión de las pruebas de renderizado.
+- **Fragmentos influidos:** `docs/rendering-decision.md`, `reports/rendering-metrics.json` y esta sección.
+- **Validación humana:** comprobé la salida de medición, el build y la petición HTTP local.
+
+## Semana 4 — Benkis Carbajal Hernández
+
+**Estudiante**
+
+Benkis Carbajal Hernández
+
+**Commit SHA evaluado**
+
+`e54f5a837dc5b835f412b2b47fe93d51a5f4c880`
+
+**Decisión técnica que puedo explicar**
+
+El listado `/inspecciones` es CSR porque el navegador obtiene la colección desde `/api/inspecciones`
+y aplica el filtro sin recargar. El detalle es SSR porque entrega los seis campos de la inspección en
+el HTML inicial, mejora la lectura y permite compartir la URL con contenido visible. No es SSG porque
+los datos dejarán de ser una semilla fija cuando se implemente la sincronización. El Server Component
+usa `getInspectionById` directamente para no hacer una petición HTTP a la propia aplicación y para
+mantener el repositorio como fuente única.
+
+**Prueba que ejecuté y resultado real**
+
+```text
+npm run measure:rendering
+Rendering metrics written to reports/rendering-metrics.json
+
+/inspecciones: 9011 bytes, sin dato sintético, mediana 7.38 ms, p90 42.37 ms.
+/inspecciones/inspection-002: 10936 bytes, con dato sintético,
+mediana 13.84 ms, p90 16.50 ms.
+
+curl.exe -s -o NUL -w "HTTP %{http_code}\n" http://localhost:3000/inspecciones/inspection-999
+HTTP 200
+```
+
+Las pruebas automatizadas de renderizado pasan 12/12 y la regresión completa pasa 55/55; el código
+HTTP 200 del identificador inexistente queda como fallo pendiente, no como cumplimiento del contrato.
+
+**Limitación o fallo diagnosticado**
+
+El reintento de `error.tsx` conserva el parámetro `?simular=error` si se vuelve a intentar desde la
+misma URL, por lo que puede repetir el error simulado. Además, el 404 real necesita revisión porque
+el servidor local respondió 200 para `inspection-999`.
+
+**Cambio que podría defender o modificar en vivo**
+
+Podría cambiar `dynamic = "force-dynamic"` por `generateStaticParams`, pero el detalle pasaría a
+generarse durante el build y no reflejaría cambios posteriores de la fuente de datos. También
+cambiaría la ruta de `ƒ Dynamic` a una forma estática para los ids generados.
+
+**Uso declarado de IA**
+
+- **Herramienta:** Codex.
+- **Propósito:** apoyar la implementación CSR/SSR, las pruebas deterministas y la documentación de métricas.
+- **Fragmentos influidos:** `src/app/inspecciones/[id]/page.tsx`, `src/components/inspections-list-client.tsx`, `tests/rendering.spec.ts`, `scripts/measure-rendering.mjs` y esta sección.
+- **Validación humana:** revisé el diff, ejecuté `npm run verify`, `npm test -- --run`, `npm run build`, dos mediciones y la petición HTTP del caso inexistente.
+
 
 - **Grupo y equipo:** Aplicaciones Web Progresivas 10B — Equipo E03
 - **Repositorio privado del equipo:** https://github.com/Chocotzi/PWA-10B-E03
-- **SHA final (40 caracteres):** `<pendiente>`
+- **SHA final (40 caracteres):** `e54f5a837dc5b835f412b2b47fe93d51a5f4c880`
   (nota: un commit no puede contener su propio hash, así que este campo se llena después del
   commit de cierre con el SHA del commit al que apunta el tag `s03-entrega`, que se obtiene con
   `git log -1 --format=%H` sobre `main`.)
 - **Enlace a Actions de ese SHA:** https://github.com/Chocotzi/PWA-10B-E03/actions
 
 > Modalidad: **equipo autorizado, evidencia individual**. Este es un solo archivo con una sección
-> por integrante; cada quien redacta y responde por **su** sección. Reemplaza cada `<!-- ... -->`
-> por tu respuesta y no borres los encabezados de campo.
+> por integrante; cada quien redacta y responde por **su** sección.
 
 ---
 
@@ -158,7 +323,7 @@ Configuración de la base de la PWA (Web App Manifest e íconos):
 - Enlace del manifiesto y definición de `themeColor` en `src/app/layout.tsx` mediante el API de metadatos de Next.js.
 - Actualización de `README.md` con las 4 secciones explícitas requeridas (setup, ejecución, verificación, evidencia).
 
-Enlace: commit `<pendiente>` en `https://github.com/Chocotzi/PWA-10B-E03` (archivos: `public/manifest.webmanifest`, `src/app/layout.tsx`, `README.md`, `public/icons/*`).
+Enlace: repositorio del equipo `https://github.com/Chocotzi/PWA-10B-E03` (archivos: `public/manifest.webmanifest`, `src/app/layout.tsx`, `README.md`, `public/icons/*`).
 
 **Una decisión que explico**
 
