@@ -1,4 +1,5 @@
 import { AppShell } from "../components/app-shell";
+import Link from "next/link";
 import { inspections } from "../lib/data/inspections";
 
 type PageProps = { searchParams: Promise<{ state?: string }> };
@@ -19,6 +20,7 @@ export default async function HomePage({ searchParams }: PageProps) {
           <p className="eyebrow">Registro de mantenimiento</p>
           <h1 id="page-title">Inspecciones de laboratorio</h1>
           <p className="lead">Consulta y da seguimiento a las revisiones de los laboratorios. Los datos mostrados son sintéticos.</p>
+          <Link className="button" href="/inspecciones">Abrir listado de inspecciones</Link>
         </div>
       </section>
       <section id="inspecciones" aria-labelledby="inspections-heading" className="page-shell content-section">

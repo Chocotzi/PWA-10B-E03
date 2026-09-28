@@ -148,3 +148,10 @@ bash public-tests/check.sh
 
 Los datos siguen siendo sintéticos. La ruta de detalle usa `await params` porque Next.js 16 expone
 los parámetros dinámicos como una promesa.
+
+## API de inspecciones Semana 4
+
+El listado y el detalle consumen la fuente única `src/lib/inspections-repository.ts`. Todas las
+respuestas llevan `Cache-Control: no-store`. Para demostraciones y pruebas deterministas se pueden
+usar los parámetros temporales `?simular=lento` y `?simular=error`; son solo para demostración y
+pruebas, no representan estados reales del origen de datos.

@@ -41,6 +41,35 @@ export const inspections: Inspection[] = [
     statusLabel: "Sin incidencias",
     findings: 0,
     summary: "Comprobación de equipo, señalización y disponibilidad del espacio."
+  },
+  {
+    id: "inspection-004",
+    location: "Laboratorio de Redes",
+    date: "2026-08-25",
+    inspector: "Técnica D",
+    status: "attention",
+    statusLabel: "Requiere atención",
+    findings: 1,
+    summary: "Se detectó una observación sintética en la señalización del área de trabajo."
+  },
+  {
+    id: "inspection-005",
+    location: "Laboratorio de Electrónica",
+    date: "2026-08-24",
+    inspector: "Técnico E",
+    status: "ok",
+    statusLabel: "Sin incidencias",
+    findings: 0,
+    summary: "Revisión sintética de herramientas, ventilación y orden del espacio."
+  },
+  {
+    id: "inspection-006",
+    location: "Laboratorio de Software",
+    date: "2026-08-23",
+    inspector: "Técnica F",
+    status: "attention",
+    statusLabel: "Requiere atención",
+    findings: 3,
+    summary: "Se registraron tres observaciones sintéticas para seguimiento del mantenimiento."
   }
 ];
-
