@@ -23,8 +23,21 @@ El servidor debe comparar `baseRevision` con su revisión actual **dentro de la 
 
 ## Supuestos y límites
 
+## Integración de captura (Semana 5)
+
+`/inspecciones` ofrece un formulario que crea únicamente inspecciones sintéticas. Al guardar, primero
+encola la mutación en IndexedDB y la muestra como pendiente; por eso sobrevive a una recarga aun sin
+red. Al iniciar la pantalla, cuando el navegador emite `online` y al pulsar «Reintentar sincronización»,
+se invoca `flush`. Un fallo de transporte no borra la copia local. Los conflictos se conservan y se
+cuentan, sin sobrescribir la inspección local.
+
+`POST /api/inspecciones` es un adaptador demostrativo en memoria. Deduplica por `mutation.id` y compara
+la revisión actual con `baseRevision` antes de escribir y generar una revisión nueva. Devuelve
+`{ kind: "applied", revision }` o `{ kind: "conflict", serverRevision }`; el estado no es persistente
+entre reinicios del servidor, por lo que no sustituye una base de datos de producción.
+
 - `SyncTransport.send` es un adaptador aún no implementado para la API; debe distinguir acuse, conflicto y error transitorio, y nunca tratar un HTTP 5xx como `applied`.
-- El endpoint de escritura y la interfaz aún no existen. La cola no puede demostrar sincronización entre dispositivos hasta que el compañero los integre.
+- El endpoint de escritura es una demostración en memoria y la interfaz solo cubre la captura local de esta semana.
 - El identificador de mutación debe mantenerse estable en cada reintento. `crypto.randomUUID()` lo crea al encolar; las pruebas inyectan identificadores fijos.
 - La cola preserva el orden dentro de una pestaña; la deduplicación y el control de concurrencia entre pestañas corresponden al servidor.
 - No hay migración desde una base previa porque esta es la primera versión del esquema. Una versión futura debe probar su migración antes de subir `SYNC_DB_VERSION`.
