@@ -3,7 +3,7 @@
 - **Grupo y equipo:** Aplicaciones Web Progresivas 10B — Equipo E03
 - **Repositorio:** https://github.com/Chocotzi/PWA-10B-E03
 - **Rama de trabajo:** `dev-cleber`
-- **SHA evaluado:** `<pendiente: reemplazar por el SHA del commit final>`
+- **SHA evaluado:** `a34af1f28a6c79f0bb71219c06bf43bcbb22e76e`
 - **Actions:** https://github.com/Chocotzi/PWA-10B-E03/actions
 
 ## Cleber Antonio Bolaños Moreno — Semana 5
