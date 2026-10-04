@@ -29,6 +29,8 @@ contribución registrada en `dev-cleber`.
 
 ## Benkis Carbajal Hernández — Semana 5
 
+**SHA de mi implementación:** `a34af1f28a6c79f0bb71219c06bf43bcbb22e76e`
+
 ### Contribución
 
 Conecté el núcleo de sincronización con la captura de inspecciones sintéticas:
