@@ -130,8 +130,6 @@ Para verlo:
 | Tag y SHA de entrega | `s03-entrega` — `6d0873eac85bc2d926e283f1c06ce9d9a471259a` |
 | Actions | <https://github.com/Chocotzi/PWA-10B-E03/actions> (archivo `week-03-w03-service-worker-offline.yml`; en la lista aparece con el mismo nombre que el de la Semana 2) |
 | Evidencia individual | [`evidence/individual.md`](evidence/individual.md) |
-| Estrategia de caché | [`docs/cache-strategy.md`](docs/cache-strategy.md) |
-| Pruebas | [`tests/service-worker.spec.ts`](tests/service-worker.spec.ts), [`tests/offline.spec.ts`](tests/offline.spec.ts) |
 
 ## Semana 4 — Renderizado CSR y SSR
 
@@ -237,3 +235,45 @@ formato de fechas, identificadores y longitud de texto están documentados en la
 | Decisión de renderizado | [`docs/rendering-decision.md`](docs/rendering-decision.md) |
 | Métricas | [`reports/rendering-metrics.json`](reports/rendering-metrics.json) |
 | Evidencia individual | [`evidence/individual.md`](evidence/individual.md) |
+
+## Semana 5 — Núcleo de sincronización (Cleber)
+
+La rama `dev-cleber` entrega la persistencia de mutaciones en IndexedDB, una cola FIFO y una
+política de conflictos por revisión. El contrato y la división con el compañero están en
+[`docs/sync-policy.md`](docs/sync-policy.md). Todos los ejemplos y pruebas usan datos sintéticos.
+
+### Setup y ejecución
+
+Con Node 20 (`.nvmrc`) y npm 10, desde la raíz:
+
+```bash
+npm ci
+npm run dev
+```
+
+La aplicación se abre en <http://localhost:3000>. El núcleo de cola aún no está conectado al
+formulario ni a un endpoint de escritura, por lo que este incremento se observa mediante las pruebas
+y la API de `src/lib/sync/queue.ts`. El compañero integrará la interfaz, el endpoint idempotente y
+el disparo de sincronización al volver la red.
+
+### Verificación y evidencia
+
+```bash
+npm ci
+make verify
+npm test
+npm run build
+```
+
+`make verify` genera `reports/verification.json`; su equivalente exacto es `npm run verify`.
+`tests/sync.spec.ts` verifica la persistencia de IndexedDB, el reintento de red, los conflictos y
+la exclusión de dos envíos simultáneos en una pestaña. El workflow
+`.github/workflows/week-05-sync.yml` ejecuta estos mismos comandos en GitHub Actions y adjunta el
+reporte. La evidencia individual de Cleber, incluido el commit evaluado y la declaración de IA,
+está en [`evidence/individual.md`](evidence/individual.md).
+
+**Límites:** no existe todavía el adaptador HTTP de escritura ni resolución visual de conflictos.
+Limpiar datos del sitio borra la cola local. El servidor debe deduplicar `mutation.id` y comparar la
+revisión de manera atómica antes de afirmar que una inspección está sincronizada.
+| Estrategia de caché | [`docs/cache-strategy.md`](docs/cache-strategy.md) |
+| Pruebas | [`tests/service-worker.spec.ts`](tests/service-worker.spec.ts), [`tests/offline.spec.ts`](tests/offline.spec.ts) |

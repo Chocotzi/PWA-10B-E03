@@ -1,0 +1,33 @@
+name: Week 05 Sync
+
+on:
+  push:
+    branches: [dev-cleber]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: make verify
+      - run: npm test
+      - run: npm run build
+      - name: Upload verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: week-05-verification
+          if-no-files-found: ignore
+          path: reports/verification.json

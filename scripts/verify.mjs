@@ -22,7 +22,12 @@ const required = [
   "src/app/inspecciones/[id]/page.tsx",
   "src/components/loading-state.tsx",
   "docs/rendering-decision.md",
-  "tests/rendering.spec.ts"
+  "tests/rendering.spec.ts",
+  "src/lib/sync/queue.ts",
+  "src/lib/storage/schema.ts",
+  "src/lib/sync/conflict-policy.ts",
+  "docs/sync-policy.md",
+  "tests/sync.spec.ts"
 ];
 
 const missing = required.filter((file) => !existsSync(resolve(root, file)));
