@@ -1,5 +1,36 @@
 # Evidencia individual — Semana 4
 
+## Semana 5 — Cleber Antonio Bolaños Moreno
+
+**Commit de implementación:** `fe01d58cce00674634e5d22c2351a036b9538f4a` en `dev-cleber`.
+Esta sección de evidencia se agrega en el commit siguiente porque un commit no puede contener su
+propio SHA. El SHA de entrega y la corrida de Actions quedan identificados en el PR.
+
+**Decisión técnica:** guardé las mutaciones en IndexedDB antes del envío. La cola conserva el mismo
+identificador en cada reintento y borra una mutación solo después de recibir un acuse con revisión.
+Ante una revisión remota distinta, retiene la copia local como conflicto para revisión explícita;
+el servidor debe comparar revisiones y deduplicar identificadores de forma atómica. La división con
+el compañero y el contrato del adaptador están en `docs/sync-policy.md`.
+
+**Prueba ejecutada:** `npm ci --no-audit --no-fund` terminó con código 0; `make verify` dio `PASS`;
+`npm test` pasó 61/61 pruebas, seis de ellas en `tests/sync.spec.ts`; `npm run build` compiló y
+completó TypeScript con código 0. La suite cubre persistencia al reabrir IndexedDB, identificadores
+repetidos, red caída y recuperada, FIFO, llamadas simultáneas y conflictos.
+
+**Limitación y fallo encontrado:** todavía no existe el endpoint de escritura ni la conexión de la
+cola con el formulario o el evento `online`; por eso no se declara RF-05/RF-06 completo. La primera
+instalación de la dependencia de pruebas quedó esperando red dentro del sandbox; al repetirla con
+acceso de red autorizado, `npm ci` y la suite terminaron correctamente. La cuota y el ciclo de vida
+de IndexedDB de un navegador real quedan para prueba de integración.
+
+**Uso declarado de IA:** Codex ayudó a redactar `schema.ts`, `queue.ts`, `conflict-policy.ts`,
+`tests/sync.spec.ts`, `docs/sync-policy.md`, el workflow, el README y esta sección. Codex ejecutó
+las verificaciones locales y revisó el diff. Cleber debe revisar y poder explicar el cambio antes
+de entregarlo como evidencia personal; esta sección no afirma una validación humana que aún no se
+ha confirmado.
+
+---
+
 > Evidencia preparada sobre el SHA local de congelamiento disponible en este checkout. El SHA final
 > publicado por Carlos debe corresponder al commit evaluado por el equipo.
 
