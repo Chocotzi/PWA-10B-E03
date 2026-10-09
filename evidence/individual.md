@@ -7,3 +7,18 @@
 - Limitación o fallo diagnosticado: Al depender de datos estáticos en el fallback, los reportes en dispositivos sin GPS parecerán haber sido emitidos desde el mismo lugar geográfico siempre (UTT), lo cual falsearía los análisis espaciales si no consideramos un atributo como "useSynthetic". 
 - Cambio que podría defender o modificar en vivo: Podría mostrar cómo capturar parámetros en la configuración para hacer las coordenadas más aleatorias, o cómo invocar `stream.getTracks().forEach(track => track.stop())` para no dejar la cámara encendida consumiendo recursos.
 - Uso declarado de IA (herramienta, propósito, validación): Usé Gemini para dividir la carga de trabajo entre módulos independientes, estructurar los archivos `camera.ts` y `geolocation.ts` y documentar mi parte. Yo revisé y entiendo el código generado sobre los fallbacks.
+## Benkis Carbajal Hernández — Semana 6
+
+**Contribución:** Implementé `src/lib/notifications/client.ts` para detectar soporte, solicitar permiso
+y mostrar notificaciones locales con datos sintéticos. Añadí pruebas reproducibles en
+`tests/notifications.spec.ts` y documenté setup, límites y verificación.
+
+**Decisión técnica:** La solicitud de permiso queda encapsulada y solo ocurre cuando la interfaz la llama
+explícitamente; en entornos sin `Notification` se devuelve `unsupported` sin romper la aplicación.
+
+**Prueba:** Pendiente de ejecutar en CI junto con `npm ci`, `make verify`, `npm test` y `npm run build`.
+
+**Limitación:** Esto cubre notificaciones locales, no Push/Web Push ni entrega desde un backend.
+
+**Uso de IA:** Codex apoyó la implementación, las pruebas y la documentación; revisé los archivos y los
+casos sintéticos antes de integrarlos.

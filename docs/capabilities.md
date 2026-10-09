@@ -28,3 +28,12 @@ Se implementa el uso de la API `navigator.geolocation` para registrar de manera 
 ## Notificaciones
 
 [Nota: Esta sección será completada por mi compañero(a) de equipo.]
+## Notificaciones locales
+
+`src/lib/notifications/client.ts` encapsula la API `Notification` para solicitar permiso y mostrar
+avisos locales con datos sintéticos. El cliente detecta navegadores sin soporte y devuelve
+`unsupported` sin lanzar errores. La solicitud de permiso solo se realiza tras una acción explícita del
+usuario; no se solicitan permisos durante la carga inicial.
+
+La implementación no envía datos a terceros ni implementa todavía un servidor Push/Web Push. Para una
+integración posterior se necesitarían una suscripción, un Service Worker y un backend de entrega.
