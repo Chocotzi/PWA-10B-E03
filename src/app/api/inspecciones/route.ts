@@ -1,5 +1,5 @@
-import { listInspections, parseSimulate } from "@/lib/inspections-repository";
-import type { PendingMutation } from "@/lib/storage/schema";
+import { listInspections, parseSimulate } from "../../../lib/inspections-repository";
+import type { PendingMutation } from "../../../lib/storage/schema";
 
 export const dynamic = "force-dynamic";
 
