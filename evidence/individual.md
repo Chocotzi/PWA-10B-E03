@@ -27,8 +27,8 @@ casos sintéticos antes de integrarlos.
 
 - **Estudiante:** Carlos Andrés Arriaga Márquez
 - **Rama:** `dev-carlos`, creada desde `dev-cleber` (`b37c1e7`) para conservar la Semana 5 y la primera versión de la Semana 6.
-- **Commit SHA evaluado:** `PENDIENTE_SHA_DOCS` (contenido completo de la entrega; el commit siguiente solo registra este SHA).
-- **Commits relevantes:** `PENDIENTE_SHA_FEAT` (implementación, integración y pruebas) y `PENDIENTE_SHA_DOCS` (documentación, README y comprobación en Chromium).
+- **Commit SHA evaluado:** `fe40dd70101dea519e3136d86a094d36506d1faa` (contenido completo de la entrega; el commit siguiente solo registra este SHA).
+- **Commits relevantes:** `cbc9da981661e349d436e9e0e8e03e7540dd389d` (implementación, integración y pruebas) y `fe40dd70101dea519e3136d86a094d36506d1faa` (documentación, README y comprobación en Chromium).
 
 **Contribución.** Integré la evidencia opcional (foto y ubicación aproximada) y los avisos de cambio al
 formulario de captura de la Semana 5. Reescribí `src/lib/device/camera.ts` y `src/lib/device/geolocation.ts`,
