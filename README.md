@@ -231,9 +231,140 @@ formato de fechas, identificadores y longitud de texto están documentados en la
 
 | Elemento | Ubicación |
 | --- | --- |
-| SHA evaluado | Carlos lo completa en S4.13 |
-| Corrida de Actions S4 | Carlos agrega el enlace en S4.13 |
+| SHA evaluado | `s04-entrega` — `ce8cef436b7ca90dbbe4f818890fd5b8b84259e9` |
+| Corrida de Actions S4 | <https://github.com/Chocotzi/PWA-10B-E03/actions> (archivo `week-04-w04-csr-ssr.yml`) |
 | Artefacto de CI | `academic-evidence-w04-csr-ssr` |
 | Decisión de renderizado | [`docs/rendering-decision.md`](docs/rendering-decision.md) |
 | Métricas | [`reports/rendering-metrics.json`](reports/rendering-metrics.json) |
 | Evidencia individual | [`evidence/individual.md`](evidence/individual.md) |
+
+## Semana 5 — Núcleo de sincronización (Cleber)
+
+La rama `dev-cleber` entrega la persistencia de mutaciones en IndexedDB, una cola FIFO y una
+política de conflictos por revisión. El contrato y la división con el compañero están en
+[`docs/sync-policy.md`](docs/sync-policy.md). Todos los ejemplos y pruebas usan datos sintéticos.
+
+### Setup y ejecución
+
+Con Node 20 (`.nvmrc`) y npm 10, desde la raíz:
+
+```bash
+npm ci
+npm run dev
+```
+
+La aplicación se abre en <http://localhost:3000>. El núcleo de cola aún no está conectado al
+formulario ni a un endpoint de escritura, por lo que este incremento se observa mediante las pruebas
+y la API de `src/lib/sync/queue.ts`. El compañero integrará la interfaz, el endpoint idempotente y
+el disparo de sincronización al volver la red.
+
+### Verificación y evidencia
+
+```bash
+npm ci
+make verify
+npm test
+npm run build
+```
+
+`make verify` genera `reports/verification.json`; su equivalente exacto es `npm run verify`.
+`tests/sync.spec.ts` verifica la persistencia de IndexedDB, el reintento de red, los conflictos y
+la exclusión de dos envíos simultáneos en una pestaña. El workflow
+`.github/workflows/week-05-sync.yml` ejecuta estos mismos comandos en GitHub Actions y adjunta el
+reporte. La evidencia individual de Cleber, incluido el commit evaluado y la declaración de IA,
+está en [`evidence/individual.md`](evidence/individual.md).
+
+> **Actualización de la Semana 5:** la integración con el formulario de `/inspecciones`, el endpoint
+> idempotente `POST /api/inspecciones` y el disparo al volver la red se agregaron en `a34af1f` (Benkis);
+> ver «Integración de captura (Semana 5)» en [`docs/sync-policy.md`](docs/sync-policy.md).
+
+**Límites:** no hay resolución visual de conflictos.
+Limpiar datos del sitio borra la cola local. El servidor debe deduplicar `mutation.id` y comparar la
+revisión de manera atómica antes de afirmar que una inspección está sincronizada.
+
+## Semana 6 — Capacidades del dispositivo y avisos de cambio
+
+Al capturar una inspección en `/inspecciones` se puede adjuntar, de forma opcional, una **foto de
+evidencia** (cámara en vivo o «Elegir imagen») y una **ubicación aproximada**. Cada cambio (inspección
+guardada, sincronizada o en conflicto) genera un **aviso**: siempre dentro de la página y, si la persona lo
+activó, también como notificación del sistema. El service worker muestra los **push** entrantes y enfoca la
+aplicación al pulsar un aviso. Ningún permiso se pide al cargar: cada uno se solicita con su botón, y si la
+API no existe o el permiso se niega la inspección se guarda igual. Decisiones, privacidad y límites:
+[`docs/capabilities.md`](docs/capabilities.md).
+
+### Qué se agregó
+
+| Artefacto | Función |
+| --- | --- |
+| `src/lib/device/camera.ts` | Cámara en vivo con permisos mínimos (solo video), validación y reducción de la foto a JPEG ≤ 1280 px sin metadatos EXIF. |
+| `src/lib/device/geolocation.ts` | Una lectura aproximada (3 decimales, ±100 m mínimo), sin alta precisión ni seguimiento, con límite de espera propio. |
+| `src/lib/notifications/client.ts` | Permiso de notificaciones bajo clic y aviso de cambio: service worker → constructor de página → aviso en la página. |
+| `src/lib/device/permissions.ts`, `src/lib/device/evidence.ts` | Consulta de permisos sin abrir diálogos y tipo de la evidencia opcional. |
+| `src/components/evidence-capture.tsx`, `src/components/notification-preferences.tsx` | Bloque «Evidencia opcional» y botón «Activar avisos» del formulario. |
+| `public/sw.js` | Eventos `push` (JSON o texto, solo rutas del mismo origen) y `notificationclick`. |
+| `tests/capabilities.spec.ts` | 74 pruebas: permisos solo bajo acción, fallback, privacidad, push e integración con la cola de la Semana 5. |
+| `scripts/check-capabilities-browser.mjs` | Comprobación opcional en Chromium real → `reports/capabilities-browser.json` y `evidence/s06/`. |
+| `docs/capabilities.md` | Permisos, fallback, privacidad, alternativas, trazabilidad, verificación, límites y fallos encontrados. |
+
+### Setup y ejecución
+
+Con Node 20 o superior (`.nvmrc`) y npm 10:
+
+```bash
+npm ci
+npm run dev                  # la captura funciona; los avisos usan el constructor de página
+npm run build && npm start   # producción: registra el service worker (necesario para push)
+```
+
+Abre <http://localhost:3000/inspecciones>. Cámara y ubicación requieren `localhost` o HTTPS.
+
+### Verificación
+
+El equivalente exacto de `make verify` y de lo que ejecuta CI:
+
+```bash
+npm ci
+make verify                  # en Windows sin make: npm run verify
+npm test                     # Vitest con cobertura (coverage/) y reporte JUnit (test-results/junit.xml)
+npm run build
+bash public-tests/check.sh   # requiere ripgrep (rg); sin rg, usa el equivalente con git grep de la Semana 4
+```
+
+`npm test` falla si la cobertura de `src/lib/device` o `src/lib/notifications` baja de 95 % (90 % en ramas).
+Las pruebas de notificaciones de la primera versión siguen en `tests/notifications.spec.ts`.
+
+Comprobación opcional en Chromium real (22 escenarios: cámara falsa, ubicación sintética, permisos
+negados, diálogos sin responder, push y modo sin red), con `npm start` corriendo en otra terminal:
+
+```bash
+npm i --no-save playwright && npx playwright install chromium
+npm run check:capabilities-browser
+```
+
+La prueba manual paso a paso (DevTools → Sensors para una ubicación sintética y botón **Push** de
+Application → Service workers) está en la sección 8 de [`docs/capabilities.md`](docs/capabilities.md).
+
+### Supuestos y límites
+
+- Solo datos sintéticos. Para demostrar se usa una imagen sintética (por ejemplo `public/icons/icon-512x512.png`)
+  y una ubicación sintética en DevTools; fotografía solo equipos, nunca personas.
+- La evidencia viaja dentro de la mutación de la Semana 5 (IndexedDB y `POST /api/inspecciones`). La API de
+  demostración no guarda ni valida la evidencia.
+- No hay suscripción Web Push ni servidor de envío: requeriría claves VAPID fuera del repositorio. El worker
+  ya muestra un push entrante.
+- En iOS las notificaciones web requieren la PWA instalada (iOS 16.4+); Safari anterior a 15 no puede
+  procesar la foto y la inspección se guarda sin ella.
+
+### Evidencia de la Semana 6
+
+| Elemento | Ubicación |
+| --- | --- |
+| Rama y SHA evaluado | `dev-carlos`; el SHA queda registrado en la sección de Carlos de [`evidence/individual.md`](evidence/individual.md) |
+| Actions | <https://github.com/Chocotzi/PWA-10B-E03/actions> (archivo `week-06-w06-device-push.yml`; artefacto `academic-evidence-w06-device-push` con `coverage/` y `test-results/`) |
+| Decisiones y trazabilidad | [`docs/capabilities.md`](docs/capabilities.md) |
+| Comprobación en Chromium | [`reports/capabilities-browser.json`](reports/capabilities-browser.json), capturas en [`evidence/s06/`](evidence/s06/) |
+| Evidencia individual | [`evidence/individual.md`](evidence/individual.md) |
+
+Autoría: primera versión de cámara y ubicación, Cleber (`62f9c36`); cliente de notificaciones, Benkis
+(`b37c1e7`); integración al formulario, privacidad, fallback, push en el worker, pruebas y documentación,
+Carlos (rama `dev-carlos`).
