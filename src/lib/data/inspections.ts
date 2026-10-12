@@ -1,3 +1,5 @@
+import type { InspectionEvidence } from "../device/evidence";
+
 export type InspectionStatus = "ok" | "attention";
 
 export type Inspection = {
@@ -9,6 +11,8 @@ export type Inspection = {
   statusLabel: string;
   findings: number;
   summary: string;
+  /** Semana 6: foto y ubicación aproximada opcionales. Los datos semilla no la incluyen. */
+  evidence?: InspectionEvidence;
 };
 
 export const inspections: Inspection[] = [

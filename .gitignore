@@ -55,3 +55,6 @@ $RECYCLE.BIN/
 
 # --- Despliegue ---
 .vercel
+
+# --- Resultados de pruebas generados por Vitest (JUnit) ---
+test-results/

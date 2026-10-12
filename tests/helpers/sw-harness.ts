@@ -85,9 +85,15 @@ export function createServiceWorkerHarness(fetchImpl: FetchImpl) {
   const listeners = new Map<string, Listener[]>();
   const caches = new MemoryCaches(fetchImpl);
   const skipWaiting = vi.fn();
+  // Semana 6: el worker muestra notificaciones y enfoca o abre ventanas al pulsar un aviso.
+  const showNotification = vi.fn(async (_title: string, _options?: Record<string, unknown>) => undefined);
+  const windowClients: WindowClientStub[] = [];
+  const matchAll = vi.fn(async (_options?: Record<string, unknown>) => [...windowClients]);
+  const openWindow = vi.fn(async (_url: string) => null);
   const self = {
     location: { origin: ORIGIN },
-    clients: { claim: async () => undefined },
+    clients: { claim: async () => undefined, matchAll, openWindow },
+    registration: { showNotification },
     skipWaiting,
     addEventListener(type: string, listener: Listener) {
       listeners.set(type, [...(listeners.get(type) || []), listener]);
@@ -107,6 +113,11 @@ export function createServiceWorkerHarness(fetchImpl: FetchImpl) {
   return {
     caches,
     skipWaiting,
+    showNotification,
+    matchAll,
+    openWindow,
+    /** Ventanas que `clients.matchAll` devolverá (pestañas abiertas de la aplicación). */
+    windowClients,
     /** Lee una constante de nivel superior de sw.js (p. ej. CACHE_VERSION) como valor JSON. */
     read<T>(name: string): T {
       return JSON.parse(runInContext(`JSON.stringify(${name})`, context)) as T;
@@ -146,6 +157,36 @@ export function createServiceWorkerHarness(fetchImpl: FetchImpl) {
     message(data: unknown) {
       return this.dispatch("message", { data });
     },
+    /** Entrega un evento `push`. `data` imita `PushMessageData` (`json()` y `text()`), o null. */
+    push(data: PushDataStub | null) {
+      const promises: Promise<unknown>[] = [];
+      return this.dispatch("push", {
+        data,
+        promises,
+        waitUntil(promise: Promise<unknown>) { promises.push(promise); },
+      });
+    },
+    /** Simula que la persona pulsa una notificación mostrada por el worker. */
+    notificationClick(notification: { data?: unknown; close: () => void }) {
+      const promises: Promise<unknown>[] = [];
+      return this.dispatch("notificationclick", {
+        notification,
+        promises,
+        waitUntil(promise: Promise<unknown>) { promises.push(promise); },
+      });
+    },
+  };
+}
+
+export type WindowClientStub = { url: string; focus: () => Promise<unknown> };
+
+export type PushDataStub = { json(): unknown; text(): string };
+
+/** `PushMessageData` simulado: `json()` falla con texto que no es JSON, como en el navegador. */
+export function pushData(raw: string): PushDataStub {
+  return {
+    json: () => JSON.parse(raw),
+    text: () => raw,
   };
 }
 
