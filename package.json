@@ -10,6 +10,7 @@
     "build": "next build",
     "start": "next start",
     "test": "node tests/starter.spec.mjs && vitest run",
+    "test:unit": "vitest run tests/unit",
     "measure:rendering": "node scripts/measure-rendering.mjs",
     "verify": "node scripts/verify.mjs"
   },
