@@ -124,4 +124,43 @@ describe("Integration: Offline Persistence & Duplicate-Free Sync", () => {
 
     storage.close();
   });
+
+  it("retiene la mutación como pending ante una caída de red simulada y la envía al reintentar", async () => {
+    const storage = await openMutationStorage(factory);
+
+    // Fixture de caída de red: el primer intento de envío falla (p. ej. fetch rechazado /
+    // conexión perdida); el segundo intento (tras "recuperar señal") se aplica con éxito.
+    let attempts = 0;
+    const flakyTransport: SyncTransport = {
+      send: async (mutation) => {
+        attempts += 1;
+        if (attempts === 1) {
+          throw new Error("Network request failed (simulated offline)");
+        }
+        return { kind: "applied", revision: `rev-${mutation.id}` };
+      },
+    };
+
+    const queue = createSyncQueue(storage, flakyTransport);
+    await queue.enqueue(inspections[1], null, "mutation-network-failure-1");
+
+    // Primer intento: la "red" falla. La mutación debe quedar retenida como pending,
+    // nunca perdida ni marcada como conflicto.
+    const firstFlush = await queue.flush();
+    expect(firstFlush).toEqual({ sent: 0, conflicts: 0, deferred: 1 });
+
+    const afterFailure = await storage.list();
+    expect(afterFailure).toHaveLength(1);
+    expect(afterFailure[0].status).toBe("pending");
+    expect(afterFailure[0].id).toBe("mutation-network-failure-1");
+
+    // Segundo intento: la "red" se recupera y el servidor aplica la mutación.
+    const secondFlush = await queue.flush();
+    expect(secondFlush).toEqual({ sent: 1, conflicts: 0, deferred: 0 });
+
+    const afterRetry = await storage.list();
+    expect(afterRetry).toHaveLength(0);
+
+    storage.close();
+  });
 });

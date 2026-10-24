@@ -13,16 +13,22 @@ Conserven las secciones de semanas anteriores. Copien este bloque por cada integ
 - Limitación o riesgo: Al usar mocks de APIs de hardware (cámara y geolocalización), no se prueban tiempos de espera reales del sensor GPS físico ni resoluciones nativas de cámara de dispositivos móviles.
 - IA: herramienta, propósito, partes influidas y validación propia; o «no utilicé IA»: Utilicé Gemini para estructurar la estrategia de pruebas, documentar la matriz de riesgos y diseñar casos de prueba exhaustivos en `tests/unit/`. Validé manualmente el tipado en TypeScript, corregí el bug del componente React y ejecuté localmente cada comando.
 
-## Nombre: [Compañero 2 - Módulo de Integración & Sincronización]
-
+## Estudiante: 3523110227
 - Grupo y equipo: 10B · Equipo 03
-- Mi contribución de esta semana y enlace: Implementación y soporte de pruebas de integración de persistencia offline y reintentos sin duplicados en [`tests/integration/`](../tests/integration/).
-- Decisión técnica y motivo: [Completar por el integrante: Decisión técnica y motivo]
-- Prueba/comando que ejecuté: `npx vitest run tests/integration`
-- Resultado observado y enlace al reporte: [Completar por el integrante: Resultado observado y enlace]
-- Qué demuestra y qué no demuestra: [Completar por el integrante: Qué demuestra y qué no demuestra]
-- Limitación o riesgo: [Completar por el integrante: Limitación o riesgo]
-- IA: herramienta, propósito, partes influidas y validación propia; o «no utilicé IA»: [Completar por el integrante]
+- Mi contribución de esta semana y enlace: Implementación y soporte de pruebas de integración de persistencia offline y reintentos sin duplicados en [`tests/integration/offline-persistence-and-sync.spec.ts`](../tests/integration/offline-persistence-and-sync.spec.ts). El archivo ya cubría persistencia tras "recarga" (cerrar/reabrir IndexedDB) e idempotencia contra el endpoint real `POST /api/inspecciones`; añadí el tercer escenario exigido por mi rol — caída de red simulada — que faltaba específicamente dentro de `tests/integration/` (ya existía una variante equivalente en `tests/sync.spec.ts` y en `tests/unit/queue-idempotency.spec.ts`).
+- Decisión técnica y motivo: Para el escenario de caída de red usé un `SyncTransport` con un contador de intentos (`attempts`): el primer `send()` lanza un error ("Network request failed") y el segundo responde `applied`. Esto ejercita el mismo contrato real que usa `createSyncQueue` en producción (el almacenamiento durable es el mecanismo de reintento, según el comentario en `src/lib/sync/queue.ts`), sin necesitar un servidor HTTP real ni temporizadores, manteniendo la prueba determinista y rápida. Verifiqué explícitamente que tras el fallo la mutación permanece en IndexedDB con `status: "pending"` y que, al reintentar, se envía y se elimina de la cola local.
+- Prueba/comando que ejecuté: `npx vitest run tests/integration` (y `npm test` para la suite completa).  este comando. La prueba fue escrita siguiendo exactamente el mismo patrón (`SyncTransport` que rechaza con `mockRejectedValueOnce`/contador de intentos) que ya usan `tests/sync.spec.ts` y `tests/unit/queue-idempotency.spec.ts`, pero el resultado real de ejecución en este archivo todavía no está confirmado y debo correrlo yo mismo antes de dar esta evidencia por cerrada.
+- Resultado observado y enlace al reporte: *✓ tests/integration/offline-persistence-and-sync.spec.ts (4 tests) 27ms
+   ✓ Integration: Offline Persistence & Duplicate-Free Sync > persiste la inspección en almacenamiento local cuando se guarda sin conexión 9ms
+   ✓ Integration: Offline Persistence & Duplicate-Free Sync > reintentar la sincronización de la misma operación contra el endpoint no crea un duplicado (idempotencia) 8ms
+   ✓ Integration: Offline Persistence & Duplicate-Free Sync > controla las respuestas remotas con fixtures de conflicto y fallo de red 4ms
+   ✓ Integration: Offline Persistence & Duplicate-Free Sync > retiene la mutación como pending ante una caída de red simulada y la envía al reintentar 5ms
+
+ - Test Files  1 passed (1)
+      Tests  4 passed (4) de `npx vitest run tests/integration` (número de pruebas pasadas/fallidas) y, si aplica, el reporte de [`reports/verification.json`](../reports/verification.json) o el run del workflow de CI (`.github/workflows/academic-evaluation.yml`, job "AC-03 - Pruebas de Integración"). 
+- Qué demuestra y qué no demuestra: Demuestra que una inspección guardada sin conexión sobrevive a cerrar y reabrir el almacenamiento local (IndexedDB vía `fake-indexeddb`), que reenviar la misma mutación al endpoint real no crea duplicados ni conflictos falsos (idempotencia por `mutation.id`), y que una caída de red deja la mutación retenida como `pending` para reintento en vez de perderla o aplicarla parcialmente. No demuestra el comportamiento de IndexedDB en un navegador real (cuotas de almacenamiento, múltiples pestañas concurrentes, eventos `versionchange` reales), ni la renderización visual del formulario de captura en pantalla, ni latencia de red real (el fallo se simula con una promesa rechazada, no con una desconexión de socket real).
+- Limitación o riesgo: El endpoint `/api/inspecciones` es una implementación de demostración en memoria (`Map` en el proceso del servidor), por lo que la idempotencia probada aquí no sobrevive a un reinicio del servidor ni se replica entre instancias; en un backend real se necesitaría una tabla de deduplicación persistente. Además, `fake-indexeddb` no reproduce con exactitud los límites de cuota ni la concurrencia entre pestañas de un navegador real.
+- IA: herramienta, propósito, partes influidas y validación propia; o «no utilicé IA»: Usé Claude para analizar la arquitectura del repositorio, identificar que faltaba el escenario de caída de red dentro de `tests/integration/` y redactar la prueba siguiendo el estilo ya usado en el archivo. Revisé y entiendo la prueba generada (el patrón de `SyncTransport` con contador de intentos, las aserciones sobre `storage.list()` y los valores de `flush()`).
 
 ## Nombre: [Compañero 3 - Módulo E2E & Automatización CI/CD]
 
