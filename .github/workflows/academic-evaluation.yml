@@ -1,0 +1,89 @@
+name: Academic Evaluation - Semana 8
+
+on:
+  push:
+    branches: [dev-cleber, main]
+  pull_request:
+    branches: [dev-cleber, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evaluate:
+    name: Verificación Integral (AC-01 a AC-04)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: AC-01 - Instalación limpia
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+
+      - name: AC-01 - Comprobación de tipos (TypeScript)
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx tsc --noEmit
+
+      - name: AC-01 - Build de producción
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build
+
+      - name: AC-02 - Verificación de artefactos requeridos
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d tests/unit && test -d tests/integration && test -d tests/e2e
+          test -f docs/test-strategy.md
+          test -f README.md
+          test -f evidence/individual.md
+
+      - name: AC-03 - Pruebas Unitarias (Reglas de validación y cola/idempotencia)
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run test:unit
+
+      - name: AC-03 - Pruebas de Integración (Persistencia offline y sincronización sin duplicados)
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx vitest run tests/integration
+
+      - name: AC-03 - Pruebas E2E (Flujo crítico y fallbacks de hardware)
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx vitest run tests/e2e
+
+      - name: AC-03 - Suite Completa y Verificación
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm test
+          npm run verify
+
+      - name: Publicar artefactos de evaluación y reportes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: academic-evidence-semana-08
+          if-no-files-found: ignore
+          path: |
+            reports/
+            coverage/
+            evidence/

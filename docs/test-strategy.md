@@ -1,132 +1,138 @@
-# Estrategia de Pruebas y Aseguramiento de Calidad (Test Strategy)
+# Estrategia de Pruebas y Aseguramiento de Calidad · Semana 8
 
-## 1. Propósito y Alcance
+## 1. Diagnóstico Inicial de la PWA
 
-Este documento establece la estrategia formal de pruebas automatizadas para la Progressive Web App (PWA) de **Inspecciones y Mantenimiento de Laboratorios** de la Universidad Tecnológica de Tehuacán.
+Al retomar la PWA de la semana 6 y ejecutar las comprobaciones locales del flujo de captura offline, se diagnosticó el siguiente bloqueo crítico:
 
-El objetivo principal es asegurar la confiabilidad, reproducibilidad y estabilidad del flujo crítico de la aplicación en condiciones de conectividad intermitente o nula, garantizando que tanto la lógica de negocio, las capacidades de hardware del dispositivo y la sincronización con el servidor se mantengan libres de regresiones.
-
----
-
-## 2. Definición del Comportamiento Crítico (*Critical Path*)
-
-El flujo crítico del sistema se define como:
-
-```mermaid
-flowchart LR
-    A[Formulario de Inspección] --> B[Captura de Evidencia y Geolocalización]
-    B --> C[Almacenamiento Local en IndexedDB]
-    C --> D{Conectividad de Red}
-    D -- Sin Conexión --> E[Retención en Cola de Mutaciones]
-    D -- Con Conexión --> F[Envío a /api/inspecciones con Control de Revisiones]
-    F -- Conflicto 409 --> G[Retención de Conflicto para Resolución]
-    F -- Éxito 201 --> H[Confirmación y Notificación Local]
-```
-
-1. **Captura local tolerante a fallos:** El usuario registra una inspección sintética con evidencia fotográfica y coordenadas.
-2. **Persistencia offline:** En ausencia de conectividad, la mutación se encola de forma determinista en IndexedDB (`mutations` store) con estado `pending`.
-3. **Sincronización atómica:** Al restablecerse la red, la cola vacía las mutaciones en orden FIFO contra el endpoint `/api/inspecciones`, validando revisiones mediante bloqueo optimista (*optimistic locking*).
-4. **Respuesta observable y fallback:** Ante caídas de red, falta de permisos o APIs no soportadas, la aplicación responde con degradación agraciada (*graceful degradation*) sin bloquear la interfaz ni corromper los datos.
+* **Fallo diagnosticado:** En el componente de captura [`src/components/inspection-capture-client.tsx`](../src/components/inspection-capture-client.tsx), la función `save(event)` ejecutaba `await queueRef.current.enqueue(...)` y posteriormente intentaba acceder a `event.currentTarget.reset()`. En React, los eventos sintéticos son reciclados o desreferenciados tras resoluciones asíncronas de promesas, lo que causaba un error en tiempo de ejecución:
+  ```text
+  TypeError: Cannot read properties of null (reading 'reset')
+  ```
+  Esto abortaba el flujo antes de que se pudiera invocar `setNotice("Inspección sintética guardada localmente.")` y `void flush()`.
+* **Corrección aplicada:** Se capturó la referencia del formulario de manera síncrona al inicio del manejador de eventos: `const form = event.currentTarget;` antes de cualquier `await`. Con esto, la captura offline opera de forma determinista y sin excepciones no controladas.
 
 ---
 
-## 3. Pirámide de Pruebas (*Test Pyramid*)
+## 2. Matriz Riesgo vs Capa de Prueba
 
-La suite de pruebas adopta la estructura clásica de la pirámide de testing para maximizar la velocidad de ejecución y la cobertura de casos borde sin incurrir en pruebas frágiles o costosas de mantener.
+Conforme al requerimiento AC-04 de la semana 8, se mapearon los riesgos críticos del negocio contra la capa de prueba óptima:
+
+| Riesgo Técnico / Operativo | Capa Asignada | Archivo de Prueba | Justificación de la Capa |
+| :--- | :--- | :--- | :--- |
+| **1. Captura inválida:** IDs malformados, fechas no estandarizadas o campos fuera de rango. | **Unitaria** | `tests/unit/inspections-domain.spec.ts` | Las reglas de validación son funciones puras e independientes de la interfaz; la prueba unitaria ofrece retroalimentación instantánea (< 10 ms) ante cualquier entrada inválida. |
+| **2. Persistencia y reconexión:** Pérdida de inspecciones capturadas sin red tras recargar el navegador. | **Integración** / **E2E** | `tests/integration/offline-persistence-and-sync.spec.ts`<br>`tests/e2e/critical-inspection-flow.spec.ts` | Requiere validar que la capa de almacenamiento en IndexedDB sobreviva al cierre/reapertura de pestañas y que el estado se reconcilie en la interfaz al volver el evento `online`. |
+| **3. Duplicado de sincronización:** Reenvío de una misma mutación creando múltiples registros en el servidor. | **Unitaria** & **Integración** | `tests/unit/queue-idempotency.spec.ts`<br>`tests/integration/offline-persistence-and-sync.spec.ts` | La deduplicación opera en dos frentes: la cola cliente deduplica llamadas a `flush()` compartiendo la misma promesa de drenaje, y el endpoint `/api/inspecciones` valida la clave de idempotencia (`mutation.id`). |
+| **4. Permisos de dispositivo no disponibles:** Bloqueo de la aplicación por cámara o GPS denegados/ausentes. | **Unitaria** & **E2E** | `tests/unit/device-capabilities.spec.ts`<br>`tests/e2e/critical-inspection-flow.spec.ts` | Debe asegurarse que las funciones `captureImage` y `getCurrentLocation` retornen datos sintéticos de respaldo (*fallback*) y que el formulario permita completar el registro sin colapsar. |
+
+---
+
+## 3. Pirámide de Pruebas y Aislamiento
 
 ```
-          / \
-         /   \       Nivel 3: Pruebas E2E (tests/e2e/)
-        / E2E \      - Simulación completa de usuario
-       /-------\     - Transición online/offline en UI
-      /  Integ  \    Nivel 2: Pruebas de Integración (tests/integration/)
-     /           \   - Cola + IndexedDB + API endpoint + Conflictos
-    /-------------\
-   /  Unitarias    \ Nivel 1: Pruebas Unitarias (tests/unit/)
-  /                 \- Reglas de dominio, validaciones, fallbacks y esquemas
- /-------------------\
+            / \
+           /   \         Capa E2E (tests/e2e/)
+          / E2E \        - Flujo crítico completo en UI
+         /-------\       - Recarga sin conexión y reconexión
+        / Integr. \      Capa de Integración (tests/integration/)
+       /           \     - Persistencia IndexedDB + Endpoint con Idempotencia
+      /-------------\
+     /   Unitarias   \   Capa Unitaria (tests/unit/)
+    /                 \  - Reglas de dominio, validaciones, cola e idempotencia
+   /-------------------\
 ```
 
-### 3.1. Nivel 1: Pruebas Unitarias (`tests/unit/`)
-* **Ubicación:** `tests/unit/`
-* **Herramienta:** Vitest (entorno `node`).
-* **Objetivo:** Verificar funciones puras, validación de esquemas, políticas de conflicto y fallbacks de hardware de manera aislada y ultrarrápida (< 500 ms).
-* **Suites implementadas:**
-  1. `inspections-domain.spec.ts`: Validación de formato de ID (`isValidInspectionId`), ordenamiento cronológico inmutable, simulación de retrasos y fallos controlados (`listInspections`, `getInspectionById`).
-  2. `conflict-policy.spec.ts`: Matriz completa de decisiones de conflicto (`decideConflict`) para el bloqueo optimista basado en revisiones base vs servidor.
-  3. `storage-schema.spec.ts`: Ciclo de vida de `MutationStorage` usando `fake-indexeddb`, verificando inserción, idempotencia ante IDs duplicados, actualización (`put`), eliminación y manejo en SSR.
-  4. `device-capabilities.spec.ts`: Mecanismos de fallback sintético para Cámara y Geolocalización, liberación de recursos (`track.stop()`) y mitigación de permisos denegados.
-  5. `notifications-client.spec.ts`: Detección de soporte, solicitud de permisos y emisión condicional de notificaciones locales.
+### 3.1. Pruebas Unitarias (`tests/unit/`)
+* **Regla de validación:** Validación estricta de IDs con regex `^inspection-\d{3}$`, formato de fechas `YYYY-MM-DD`, y contratos de datos sintéticos (`inspections-domain.spec.ts`).
+* **Regla de la cola e idempotencia:** Rechazo de mutaciones sin ID, deduplicación en llamadas simultáneas a `flush()`, y retención FIFO ante caídas de transporte (`queue-idempotency.spec.ts`).
+* **Regla de bloqueo optimista:** Matriz de decisiones de conflicto `decideConflict` (`conflict-policy.spec.ts`).
+* **Aislamiento de hardware:** Mocking de `getUserMedia` verificando `track.stop()` y stubs de geolocalización con coordenadas sintéticas de la UTT (`device-capabilities.spec.ts`).
 
-### 3.2. Nivel 2: Pruebas de Integración (`tests/integration/`)
-* **Ubicación:** `tests/integration/`
-* **Objetivo:** Probar la interacción entre subsistemas acoplados:
-  * Sincronización en cola (`createSyncQueue`) con persistencia en `IndexedDB`.
-  * Endpoint HTTP `/api/inspecciones` recibiendo mutaciones con control de revisiones concurrentes.
-  * Preservación del estado `pending` ante caídas de transporte simuladas.
+### 3.2. Pruebas de Integración (`tests/integration/`)
+* **Persistencia local:** Inserción y recuperación en IndexedDB usando `fake-indexeddb` simulando ciclos de cerrado y reapertura de la base de datos.
+* **Idempotencia remota:** Reintentos múltiples de la misma mutación al endpoint `/api/inspecciones` respondiendo `200 OK` con la misma revisión aplicada en lugar de crear duplicados o conflicto `409`.
 
-### 3.3. Nivel 3: Pruebas End-to-End (`tests/e2e/`)
-* **Ubicación:** `tests/e2e/`
-* **Objetivo:** Validación del flujo crítico completo desde la perspectiva del operador del laboratorio, simulando el ciclo: formulario -> captura offline -> visualización de resumen -> sincronización y notificación.
+### 3.3. Pruebas End-to-End (`tests/e2e/`)
+* **Flujo crítico de usuario:** Creación en interfaz con `navigator.onLine = false` ➔ guardado en IndexedDB ➔ desmontaje y remonte del componente simulando recarga ➔ activación del evento `online` ➔ sincronización exitosa y actualización de la vista.
+* **Variante sin permisos:** Captura completada exitosamente a pesar de cámara o GPS denegados mediante el uso de datos sintéticos.
 
 ---
 
-## 4. Política de Datos Sintéticos y Privacidad
+## 4. Evidencia del Defecto Controlado
 
-Para cumplir con las directrices académicas y de seguridad industrial:
-* **Zero PII (Personally Identifiable Information):** No se utilizan nombres, credenciales, correos ni datos de personas reales.
-* **Coordenadas Sintéticas:** La geolocalización fallback utiliza coordenadas fijas institucionales de la UTT (`18.4627, -97.3928`).
-* **Medios Sintéticos:** La cámara fallback genera un píxel transparente en formato base64 (`data:image/png;base64,...`), eliminando la necesidad de archivos pesados o captura de rostros reales.
-* **Determinismo:** Todos los IDs de inspecciones sintéticas de prueba siguen el estándar `synthetic-[uuid]` o `inspection-00X`.
+Para dar cumplimiento al criterio **AC-03** y demostrar que la suite de pruebas es capaz de detectar regresiones reales:
+
+### 4.1. Introducción del Defecto
+Se introdujo una modificación controlada en [`src/app/api/inspecciones/route.ts`](../src/app/api/inspecciones/route.ts) omitiendo la verificación de acuse previo (protección de idempotencia):
+
+```typescript
+// DEFECTO INTRODUCIDO: Omitir verificación de acuses previos
+// const previous = acknowledgements.get(mutation.id);
+// if (previous) return json(previous);
+```
+
+### 4.2. Salida Real del Fallo
+Al ejecutar la prueba de integración de idempotencia, el segundo envío generó un conflicto `409` en lugar de devolver la respuesta exitosa previa:
+
+```text
+$ npx vitest run tests/integration/offline-persistence-and-sync.spec.ts
+
+ FAIL  tests/integration/offline-persistence-and-sync.spec.ts > Integration: Offline Persistence & Duplicate-Free Sync > reintentar la sincronización de la misma operación contra el endpoint no crea un duplicado (idempotencia)
+AssertionError: expected 409 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 409
+
+ ❯ tests/integration/offline-persistence-and-sync.spec.ts:100:25
+    100|     expect(res2.status).toBe(200);
+       |                         ^
+    101|     expect(body2.kind).toBe("applied");
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed (3)
+```
+
+### 4.3. Recuperación tras Restaurar la Solución
+Se restauró la verificación del mapa de `acknowledgements` y la prueba pasó inmediatamente al 100%:
+
+```text
+$ npx vitest run tests/integration/offline-persistence-and-sync.spec.ts
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Duration  290ms
+```
 
 ---
 
-## 5. Fronteras de Aislamiento y Estrategia de Mocking
+## 5. Política de Datos Sintéticos y Privacidad
 
-| API / Dependencia | Estrategia de Aislamiento | Justificación Técnica |
-| :--- | :--- | :--- |
-| **IndexedDB** | `fake-indexeddb` en memoria | Permite ejecutar pruebas en entorno Node sin levantar un navegador headless, garantizando velocidad y paralelismo limpio sin dejar residuos en disco. |
-| **MediaDevices (`getUserMedia`)** | Mock de `stream` con espías en `track.stop()` | Evita requerir hardware de cámara en runners de CI; permite verificar que los recursos se liberen inmediatamente. |
-| **Geolocation** | Stub de `navigator.geolocation` | Simula tanto la respuesta instantánea como los errores de timeout y denegación de permisos sin depender de GPS real. |
-| **Notification API** | Mock de clase constructora `Notification` | Verifica que no se lancen notificaciones sin permiso explícito (`granted`) y previene errores en entornos no soportados. |
-| **Lógica de Dominio y Políticas** | **Sin Mocks (Código Real)** | Las funciones de resolución de conflictos, ordenamiento y validaciones se ejecutan con su implementación real para asegurar detección genuina de regresiones. |
+* **Sin PII ni secretos:** No se almacena información personal ni llaves de API.
+* **Coordenadas fijas:** Coordenadas de prueba UTT (`18.4627, -97.3928`).
+* **Imágenes sintéticas:** Imagen de 1x1 píxel en Base64 para simulación ligera.
 
 ---
 
-## 6. Trade-offs y Decisiones Técnicas
-
-1. **Vitest en entorno `node` vs `jsdom`:**
-   * *Decisión:* Ejecutar la suite unitaria con `environment: "node"` e inyectar selectivamente stubs/mocks donde se requieran APIs globales del navegador.
-   * *Trade-off:* Menor fidelidad al DOM global completo, pero ganancia masiva en velocidad de ejecución (de ~3-5 s a < 1.5 s para > 100 pruebas) y menor consumo de memoria en CI.
-2. **Fallbacks deterministas en lugar de lanzar excepciones:**
-   * *Decisión:* Las funciones `captureImage` y `getCurrentLocation` retornan objetos de resultado con bandera `success: true/false` y fallback a datos sintéticos cuando `useSynthetic` está activo o la API está ausente.
-   * *Trade-off:* La aplicación no explota ante navegadores antiguos o entornos HTTP inseguros, a costa de requerir que el llamador verifique el resultado si necesita forzar hardware real.
-3. **Bloqueo optimista basado en revisiones:**
-   * *Decisión:* Control de revisiones atómico (`baseRevision === serverRevision`) en el endpoint `/api/inspecciones`.
-   * *Trade-off:* Si dos operadores editan simultáneamente la misma inspección offline, el segundo en sincronizar recibirá un conflicto 409 que debe resolverse de forma asistida, preservando la integridad de datos sobre la sobreescritura ciega (*last-write-wins*).
-
----
-
-## 7. Prevención de Pruebas Frágiles (*Flakiness*)
-
-* **Cero temporizadores arbitrarios (`sleep`):** No se utilizan llamadas a `sleep` prolongadas; los retrasos simulados en repositorios usan promesas con tiempos mínimos controlados (10-15 ms).
-* **Limpieza de estado (`afterEach`):** Todo mock global (`vi.stubGlobal`, `vi.restoreAllMocks`) se restaura al finalizar cada prueba para evitar contaminación cruzada entre suites.
-* **Instancias de almacenamiento efímeras:** Cada prueba de base de datos instancia una nueva `IDBFactory`, asegurando que no existan mutaciones residuales entre pruebas consecutivas.
-
----
-
-## 8. Comandos de Verificación
+## 6. Comandos de Verificación Local
 
 ```bash
-# 1. Ejecutar la suite completa de pruebas (Unitarias + Integración)
+# Ejecutar suite completa (Unitarias, Integración, E2E)
 npm test
 
-# 2. Ejecutar únicamente la suite de pruebas unitarias
-npx vitest run tests/unit
+# Ejecutar únicamente pruebas unitarias
+npm run test:unit
 
-# 3. Compilar la aplicación para verificar tipos y build de producción
+# Ejecutar pruebas de integración
+npx vitest run tests/integration
+
+# Ejecutar pruebas E2E
+npx vitest run tests/e2e
+
+# Verificar build de producción
 npm run build
 
-# 4. Verificar existencia de artefactos obligatorios
+# Verificación de artefactos
 npm run verify
 ```

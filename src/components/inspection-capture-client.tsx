@@ -60,9 +60,10 @@ export function InspectionCaptureClient() {
 
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
     if (!queueRef.current) return;
-    await queueRef.current.enqueue(makeInspection(event.currentTarget), null);
-    event.currentTarget.reset();
+    await queueRef.current.enqueue(makeInspection(form), null);
+    form.reset();
     setNotice("Inspección sintética guardada localmente.");
     await refresh();
     void flush();
