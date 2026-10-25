@@ -1,89 +1,123 @@
+# Semana 8 — Pirámide de pruebas e integración continua.
+# Workflow de la actividad (retroalimentación; la calificación final usa el SHA fijado y checks privados).
+#
+# Orden: npm ci → lint → tipos → build → artefactos → unitarias → integración → E2E (jsdom)
+#        → suite completa con cobertura → E2E en Chromium contra `next start`.
+# Cada etapa corre si su requisito terminó bien, aunque otra etapa haya fallado, para que la ejecución
+# muestre todos los fallos a la vez; el job termina en rojo si falla cualquier etapa obligatoria.
+# Los reportes (JUnit, cobertura, Playwright) se publican siempre, también cuando una prueba falla.
 name: Academic Evaluation - Semana 8
 
 on:
   push:
-    branches: [dev-cleber, main]
+    branches: ["**"]
   pull_request:
-    branches: [dev-cleber, main]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: academic-evaluation-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   evaluate:
-    name: Verificación Integral (AC-01 a AC-04)
+    name: Verificación integral (AC-01 a AC-04)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
+    env:
+      CI: true
+      NEXT_TELEMETRY_DISABLED: 1
     steps:
-      - name: Checkout del repositorio
-        uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v6
 
-      - name: Configurar Node.js
-        uses: actions/setup-node@v4
+      - name: Node.js según .nvmrc
+        uses: actions/setup-node@v6
         with:
-          node-version: 20
-          cache: "npm"
+          node-version-file: .nvmrc
+          cache: npm
 
-      - name: AC-01 - Instalación limpia
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm ci --no-audit --no-fund
+      - name: AC-01 · Instalación limpia — npm ci
+        id: install
+        run: npm ci --no-audit --no-fund
 
-      - name: AC-01 - Comprobación de tipos (TypeScript)
-        shell: bash
-        run: |
-          set -euo pipefail
-          npx tsc --noEmit
+      - name: AC-03 · Lint — npm run lint
+        id: lint
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run lint
 
-      - name: AC-01 - Build de producción
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm run build
+      - name: AC-01 · Tipos — npm run typecheck
+        id: typecheck
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run typecheck
 
-      - name: AC-02 - Verificación de artefactos requeridos
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -d tests/unit && test -d tests/integration && test -d tests/e2e
-          test -f docs/test-strategy.md
-          test -f README.md
-          test -f evidence/individual.md
+      - name: AC-01 · Build de producción — npm run build
+        id: build
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run build
 
-      - name: AC-03 - Pruebas Unitarias (Reglas de validación y cola/idempotencia)
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm run test:unit
+      - name: AC-02 · Artefactos requeridos — npm run verify
+        id: artifacts
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run verify
 
-      - name: AC-03 - Pruebas de Integración (Persistencia offline y sincronización sin duplicados)
-        shell: bash
-        run: |
-          set -euo pipefail
-          npx vitest run tests/integration
+      - name: AC-02 · Unitarias — npm run test:unit
+        id: unit
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run test:unit
 
-      - name: AC-03 - Pruebas E2E (Flujo crítico y fallbacks de hardware)
-        shell: bash
-        run: |
-          set -euo pipefail
-          npx vitest run tests/e2e
+      - name: AC-02 · Integración — npm run test:integration
+        id: integration
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run test:integration
 
-      - name: AC-03 - Suite Completa y Verificación
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm test
-          npm run verify
+      - name: AC-02 · E2E en jsdom — npm run test:e2e
+        id: e2e
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run test:e2e
 
-      - name: Publicar artefactos de evaluación y reportes
-        if: always()
-        uses: actions/upload-artifact@v4
+      - name: AC-03 · Suite completa con cobertura — npm test
+        id: coverage
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm test
+
+      - name: Instalar Chromium de Playwright
+        id: browsers
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: npx playwright install --with-deps chromium
+
+      - name: AC-02 · E2E en Chromium con next start — npm run test:e2e:browser
+        id: e2e_browser
+        if: ${{ !cancelled() && steps.browsers.outcome == 'success' }}
+        run: npm run test:e2e:browser
+
+      - name: Resumen de la ejecución
+        if: ${{ always() }}
+        env:
+          STAGE_INSTALL: ${{ steps.install.outcome }}
+          STAGE_LINT: ${{ steps.lint.outcome }}
+          STAGE_TYPECHECK: ${{ steps.typecheck.outcome }}
+          STAGE_BUILD: ${{ steps.build.outcome }}
+          STAGE_ARTIFACTS: ${{ steps.artifacts.outcome }}
+          STAGE_UNIT: ${{ steps.unit.outcome }}
+          STAGE_INTEGRATION: ${{ steps.integration.outcome }}
+          STAGE_E2E: ${{ steps.e2e.outcome }}
+          STAGE_COVERAGE: ${{ steps.coverage.outcome }}
+          STAGE_E2E_BROWSER: ${{ steps.e2e_browser.outcome }}
+        run: node scripts/ci-summary.mjs >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publicar reportes (también si falla una prueba)
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v6
         with:
-          name: academic-evidence-semana-08
-          if-no-files-found: ignore
+          name: academic-evaluation-s08-${{ github.sha }}
+          if-no-files-found: warn
+          retention-days: 30
           path: |
-            reports/
+            test-results/
             coverage/
-            evidence/
+            playwright-report/
+            reports/verification.json
