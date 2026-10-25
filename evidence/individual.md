@@ -61,7 +61,7 @@ Conserven las secciones de semanas anteriores. Copien este bloque por cada integ
 - IA: herramienta, propósito, partes influidas y validación propia:
   - Herramienta y propósito: usé Claude (Anthropic) en una sesión con un clon del repositorio para analizar las ramas, diagnosticar el merge con `main`, diseñar las pruebas y generar el código y la documentación.
   - Partes influidas: los archivos listados en «Mi contribución» y esta sección.
-  - Validación propia: revisé el diff de cada commit antes de subirlo y ejecuté en mi equipo `npm ci`, `npx vitest run tests/e2e`, `npm run build` y `npm run test:e2e:browser`, con este resultado: ⟨completar⟩.
+  - Validación propia: revisé el diff de cada commit antes de subirlo y ejecuté en mi equipo `npm ci`, `npx vitest run tests/e2e`, `npm run build` y `npm run test:e2e:browser`, con este resultado: 4/4 en jsdom (npx vitest run tests/e2e), npm run build sin errores (Next.js 16.3.4) y 2/2 en Chromium (npm run test:e2e:browser), en Windows con Node v24.14.0.
 
 El SHA final común se entrega en Classroom tras el último commit. No inserten ese SHA en un nuevo commit para intentar identificar el mismo archivo.
 
