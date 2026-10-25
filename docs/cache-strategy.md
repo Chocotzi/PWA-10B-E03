@@ -146,3 +146,11 @@ de nuevo el build y reiniciar la aplicación. La nueva versión debe quedar en `
 `SKIP_WAITING`, ocurre `controllerchange` y se recarga la página. Las pruebas automatizadas de
 `tests/service-worker.spec.ts` y `tests/offline.spec.ts` cubren el precache, la invalidación, el
 fallback y el registro seguro.
+
+## 10. Semana 6: eventos de notificación
+
+`public/sw.js` agrega los eventos `push` y `notificationclick` (ver
+[`capabilities.md`](capabilities.md), §5). No cambian la estrategia de caché: no se agregan recursos a
+`PRECACHE_URLS`, no se interceptan nuevas solicitudes y `CACHE_VERSION` sigue en `inspecciones-v1`. El
+navegador detecta igualmente que el archivo del worker cambió y sigue el flujo de actualización de la §3
+(aviso «Hay una nueva versión disponible» y `SKIP_WAITING` solo cuando la persona lo pulsa).

@@ -57,3 +57,6 @@ $RECYCLE.BIN/
 .vercel
 CLAUDE.md
 PLAN.md
+
+# --- Resultados de pruebas generados por Vitest (JUnit) ---
+test-results/

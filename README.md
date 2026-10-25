@@ -1,18 +1,385 @@
-# PWA de Inspecciones y Mantenimiento de Laboratorios · Semana 8
+# PWA de inspecciones de laboratorio — proyecto base
+
+Starter oficial para la materia **Aplicaciones Web Progresivas**.
+
+## 1. Setup
+
+Para preparar el entorno de desarrollo local, asegúrate de cumplir con los siguientes requisitos e instalar las dependencias:
+
+- **Node.js**: Versión 20 LTS o superior.
+- **npm**: Versión 10 o superior.
+- **Git** y una cuenta de GitHub.
+
+**Instalación:**
+Clona este repositorio y ejecuta el siguiente comando en la raíz del proyecto para instalar las dependencias exactas:
+```bash
+npm ci
+```
+
+## 2. Ejecución
+
+Para levantar el servidor de desarrollo y visualizar la aplicación, ejecuta:
+```bash
+npm run dev
+```
+Abre <http://localhost:3000> en tu navegador. Deberías ver la pantalla inicial de inspecciones con datos sintéticos (Laboratorio de Redes, Electrónica y Software).
+
+## 3. Verificación
+
+Antes de enviar cualquier cambio, asegúrate de que el proyecto cumple con los estándares mediante los siguientes comandos:
+
+**Verificación automática (linter, build y pruebas):**
+```bash
+npm run verify
+npm test
+npm run build
+```
+
+**Verificación pública del starter:**
+```bash
+bash public-tests/check.sh
+```
+Estos comandos comprueban que el código compila correctamente y la estructura general es válida. `make verify` o `npm run verify` genera `reports/verification.json`.
+
+Además, para verificar la PWA: abre **Chrome DevTools -> Application -> Manifest** y comprueba que el archivo `manifest.webmanifest` carga sin errores y la PWA es instalable.
+
+## 4. Evidencia
+
+La evidencia individual del trabajo técnico realizado se encuentra en la carpeta `evidence/`.
+- **Archivo principal:** `evidence/individual.md`
+
+Este archivo documenta la contribución de la semana, con la decisión técnica tomada por cada integrante, las pruebas ejecutadas, limitaciones encontradas y el uso transparente de herramientas de IA durante el desarrollo. No uses datos reales de personas o laboratorios; usa datos sintéticos.
+
+## Semana 3 — Service worker y consulta offline
+
+La aplicación conserva la lista de inspecciones sintéticas disponible sin conexión después de una primera visita con red, y avisa al usuario cuando hay una versión nueva. La estrategia completa y sus justificaciones están en [`docs/cache-strategy.md`](docs/cache-strategy.md).
+
+### Qué se agregó
+
+| Artefacto | Función |
+| --- | --- |
+| `public/sw.js` | Service Worker escrito a mano: precache atómico en una caché versionada, cache-first para `/_next/static/**`, network-first con respaldo `/offline` para navegaciones y activación solo bajo mensaje `SKIP_WAITING`. |
+| `src/lib/pwa/register-service-worker.ts` | Registro seguro: solo en producción, nunca lanza, avisa de actualizaciones y activa el worker en espera con una única recarga. |
+| `src/components/pwa/ServiceWorkerManager.tsx` | Componente de cliente montado en `layout.tsx`: registra el worker y muestra el aviso de nueva versión. |
+| `src/app/offline/page.tsx` | Ruta `/offline` (página «Sin conexión»), precacheada por el worker. |
+| `docs/cache-strategy.md` | Estrategia de caché en 9 secciones: recursos, ciclo de vida, invalidación, privacidad, errores, alternativas, límites y verificación. |
+| `tests/service-worker.spec.ts`, `tests/offline.spec.ts` | Suites Vitest del worker y del registro; usan el arnés `tests/helpers/sw-harness.ts`, que ejecuta el `public/sw.js` real con caché y red simuladas. |
+| `.github/workflows/week-03-w03-service-worker-offline.yml` | Workflow de retroalimentación de la semana; se suma a los de las semanas 1 y 2. |
+| `scripts/verify.mjs`, `public-tests/check.sh` | Ahora exigen también los artefactos de la Semana 3. |
+
+### Setup y ejecución
+
+```bash
+npm ci
+npm run build
+npm start
+```
+
+Abre <http://localhost:3000>. El Service Worker **solo se registra en producción**, para no interferir con la recarga en caliente de `next dev`; por eso hay que compilar y usar `npm start`. Con `npm run dev` la aplicación funciona igual, pero sin worker.
+
+Si ya probaste la versión de producción en `localhost:3000` y vuelves a `npm run dev`, el worker anterior sigue registrado en ese origen y puede servir archivos de una compilación vieja. Antes de continuar, en **DevTools → Application → Service Workers** pulsa **Unregister** y en **Storage** usa **Clear site data**.
+
+### Verificación
+
+```bash
+npm ci
+npm run verify
+npm run test -- --run
+npm run build
+bash public-tests/check.sh
+```
+
+Todas deben terminar sin errores. Las pruebas son deterministas: no usan navegador ni red real. `check.sh` necesita ripgrep (`rg`) instalado; en Linux, como en CI, viene disponible.
+
+### Prueba manual offline
+
+1. Ejecuta `npm run build` y `npm start`, y abre <http://localhost:3000> en Chrome o Edge (ventana normal, no incógnito).
+2. Abre DevTools con F12 → **Application → Service Workers** y confirma que `/sw.js` figura como *activated and is running*. Si no aparece, recarga una vez.
+3. En **Application → Cache Storage → `inspecciones-v1`** deben estar `/`, `/offline`, `/manifest.webmanifest` y los tres íconos.
+4. En **Network** activa **Offline**.
+5. Recarga `/`. La portada con la lista de inspecciones sigue visible, servida desde la caché. En la consola aparece `[sw] navigation request failed`: es esperado y deja constancia del fallo de red.
+6. Abre una ruta que nunca visitaste, por ejemplo <http://localhost:3000/ruta-inexistente>. Se muestra la página **Sin conexión** con el botón «Volver a la portada».
+7. Desactiva **Offline** y recarga: la página vuelve a cargarse desde la red.
+
+### Aviso de actualización
+
+Cuando existe una versión nueva del worker y la página ya estaba controlada por la anterior, aparece abajo a la izquierda un aviso oscuro con el texto «Hay una nueva versión disponible.» y el botón blanco **Actualizar**. Nada se activa hasta que el usuario lo pulsa.
+
+Para verlo:
+
+1. Con la aplicación abierta desde `npm start`, cambia en `public/sw.js` la constante `CACHE_VERSION` a `inspecciones-v2`.
+2. Ejecuta de nuevo `npm run build`, reinicia `npm start` y recarga la pestaña abierta.
+3. El worker nuevo queda en estado *waiting* (visible en **Application → Service Workers**) y aparece el aviso.
+4. Pulsa **Actualizar**: se envía `SKIP_WAITING`, la página se recarga una sola vez y en **Cache Storage** queda únicamente `inspecciones-v2`.
+5. Revierte el cambio de `CACHE_VERSION` si solo era una prueba.
+
+### Supuestos y límites
+
+- **Datos y privacidad.** Solo se guardan HTML, scripts, estilos e íconos públicos con datos sintéticos. El worker no intercepta `/api/**`, métodos distintos de `GET` ni solicitudes de otro origen, y no guarda respuestas con error ni con `Cache-Control: no-store`.
+- **Alcance.** Solo hay lectura offline. Capturar inspecciones sin conexión y sincronizarlas después (RF-05 y RF-06) queda para semanas posteriores.
+- **Instalación atómica.** Si falta cualquier recurso del precache, incluida `/offline`, el worker no se instala. Cambiar `PRECACHE_URLS` obliga a subir `CACHE_VERSION`.
+- **La ruta `/` no se refresca con red (comprobado).** Con `npm start`, `/` responde `Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate`, porque es dinámica desde la Semana 2 (recibe `searchParams`). Como el worker no guarda respuestas `no-store`, la copia offline de `/` es la que se tomó al instalar el worker y solo cambia cuando se instala una versión nueva. Las variantes `/?state=…` tampoco quedan en caché. `/offline` y `/_next/static/**` sí son cacheables. Queda una decisión de equipo: volver `/` estática (RNF-04) o ajustar la regla de `no-store`.
+- **Alcance de las pruebas.** El arnés ejecuta el worker real en `node:vm` con una caché y una red simuladas. Es rápido y determinista, pero no reproduce `Vary`, la cuota de almacenamiento, respuestas opacas ni el ciclo de vida real del navegador; por eso existe la prueba manual de arriba.
+- **Navegadores.** El objetivo es Chrome y Edge (escritorio y Android). Safari e iOS tienen soporte desigual (riesgo R3 del ADR-001).
+- **Datos del sitio.** Si el usuario limpia el almacenamiento del navegador, pierde la copia local y debe visitar la aplicación de nuevo con conexión.
+
+### Evidencia de la Semana 3
+
+| Campo | Valor |
+| --- | --- |
+| Tag y SHA de entrega | `s03-entrega` — `6d0873eac85bc2d926e283f1c06ce9d9a471259a` |
+| Actions | <https://github.com/Chocotzi/PWA-10B-E03/actions> (archivo `week-03-w03-service-worker-offline.yml`; en la lista aparece con el mismo nombre que el de la Semana 2) |
+| Evidencia individual | [`evidence/individual.md`](evidence/individual.md) |
+| Estrategia de caché | [`docs/cache-strategy.md`](docs/cache-strategy.md) |
+| Pruebas | [`tests/service-worker.spec.ts`](tests/service-worker.spec.ts), [`tests/offline.spec.ts`](tests/offline.spec.ts) |
+
+## Semana 4 — Renderizado CSR y SSR
+
+La actividad agrega el listado `/inspecciones`, el detalle `/inspecciones/[id]`, un componente de
+carga y la documentación de la decisión de renderizado. Los artefactos se verifican con:
+
+```bash
+npm ci
+npm run verify
+npm run test -- --run
+npm run build
+bash public-tests/check.sh
+```
+
+Los datos siguen siendo sintéticos. La ruta de detalle usa `await params` porque Next.js 16 expone
+los parámetros dinámicos como una promesa.
+
+## API de inspecciones Semana 4
+
+El listado y el detalle consumen la fuente única `src/lib/inspections-repository.ts`. Todas las
+respuestas llevan `Cache-Control: no-store`. Para demostraciones y pruebas deterministas se pueden
+usar los parámetros temporales `?simular=lento` y `?simular=error`; son solo para demostración y
+pruebas, no representan estados reales del origen de datos.
+
+## Semana 4 — Renderizado CSR/SSR
+
+### Setup
+
+El proyecto declara Node mediante `.nvmrc` con la versión `20` y mediante `engines` en
+`package.json`. Desde la raíz instala las dependencias exactas con:
+
+```bash
+npm ci
+```
+
+### Ejecución
+
+Inicia el entorno local con:
+
+```bash
+npm run dev
+```
+
+Rutas principales:
+
+- `/inspecciones`: listado CSR; el HTML inicial muestra la carga y el navegador consulta la API.
+- `/inspecciones/inspection-002`: detalle SSR.
+- `/inspecciones/inspection-999`: detalle inexistente; muestra el estado 404 correspondiente.
+- `/inspecciones?simular=lento`: muestra la carga durante la espera configurada.
+- `/inspecciones?simular=error`: muestra el error y permite reintentar sin simulación.
+
+### Verificación
+
+El equivalente exacto de `make verify` es:
+
+```bash
+make verify
+npm run verify
+npm run test -- --run
+npm run build
+bash public-tests/check.sh
+```
+
+En Windows sin `make`, ejecuta `npm run verify`. Si no está disponible `rg`, el equivalente del
+escaneo es:
+
+```bash
+git grep -n -i -E '(api[_-]?key|secret|password|token)'
+```
+
+### Medición
+
+Con el servidor de producción iniciado, mide el HTML inicial del listado CSR y del detalle SSR:
+
+```bash
+npm run build
+npm start
+```
+
+En otra terminal ejecuta:
+
+```bash
+npm run measure:rendering
+```
+
+El comando genera `reports/rendering-metrics.json` con ruta, tipo de renderizado, estado HTTP,
+tamaño de respuesta y duración de cada solicitud.
+
+### Supuestos y límites
+
+La aplicación usa exclusivamente datos sintéticos. Los parámetros `?simular=lento` y
+`?simular=error` existen solo para demostración y pruebas deterministas. Los límites de cantidad,
+formato de fechas, identificadores y longitud de texto están documentados en la sección 8 de
+[`docs/rendering-decision.md`](docs/rendering-decision.md).
+
+### Evidencia
+
+| Elemento | Ubicación |
+| --- | --- |
+| SHA evaluado | `s04-entrega` — `ce8cef436b7ca90dbbe4f818890fd5b8b84259e9` |
+| Corrida de Actions S4 | <https://github.com/Chocotzi/PWA-10B-E03/actions> (archivo `week-04-w04-csr-ssr.yml`) |
+| Artefacto de CI | `academic-evidence-w04-csr-ssr` |
+| Decisión de renderizado | [`docs/rendering-decision.md`](docs/rendering-decision.md) |
+| Métricas | [`reports/rendering-metrics.json`](reports/rendering-metrics.json) |
+| Evidencia individual | [`evidence/individual.md`](evidence/individual.md) |
+
+## Semana 5 — Núcleo de sincronización (Cleber)
+
+La rama `dev-cleber` entrega la persistencia de mutaciones en IndexedDB, una cola FIFO y una
+política de conflictos por revisión. El contrato y la división con el compañero están en
+[`docs/sync-policy.md`](docs/sync-policy.md). Todos los ejemplos y pruebas usan datos sintéticos.
+
+### Setup y ejecución
+
+Con Node 20 (`.nvmrc`) y npm 10, desde la raíz:
+
+```bash
+npm ci
+npm run dev
+```
+
+La aplicación se abre en <http://localhost:3000>. El núcleo de cola aún no está conectado al
+formulario ni a un endpoint de escritura, por lo que este incremento se observa mediante las pruebas
+y la API de `src/lib/sync/queue.ts`. El compañero integrará la interfaz, el endpoint idempotente y
+el disparo de sincronización al volver la red.
+
+### Verificación y evidencia
+
+```bash
+npm ci
+make verify
+npm test
+npm run build
+```
+
+`make verify` genera `reports/verification.json`; su equivalente exacto es `npm run verify`.
+`tests/sync.spec.ts` verifica la persistencia de IndexedDB, el reintento de red, los conflictos y
+la exclusión de dos envíos simultáneos en una pestaña. El workflow
+`.github/workflows/week-05-sync.yml` ejecuta estos mismos comandos en GitHub Actions y adjunta el
+reporte. La evidencia individual de Cleber, incluido el commit evaluado y la declaración de IA,
+está en [`evidence/individual.md`](evidence/individual.md).
+
+> **Actualización de la Semana 5:** la integración con el formulario de `/inspecciones`, el endpoint
+> idempotente `POST /api/inspecciones` y el disparo al volver la red se agregaron en `a34af1f` (Benkis);
+> ver «Integración de captura (Semana 5)» en [`docs/sync-policy.md`](docs/sync-policy.md).
+
+**Límites:** no hay resolución visual de conflictos.
+Limpiar datos del sitio borra la cola local. El servidor debe deduplicar `mutation.id` y comparar la
+revisión de manera atómica antes de afirmar que una inspección está sincronizada.
+
+## Semana 6 — Capacidades del dispositivo y avisos de cambio
+
+Al capturar una inspección en `/inspecciones` se puede adjuntar, de forma opcional, una **foto de
+evidencia** (cámara en vivo o «Elegir imagen») y una **ubicación aproximada**. Cada cambio (inspección
+guardada, sincronizada o en conflicto) genera un **aviso**: siempre dentro de la página y, si la persona lo
+activó, también como notificación del sistema. El service worker muestra los **push** entrantes y enfoca la
+aplicación al pulsar un aviso. Ningún permiso se pide al cargar: cada uno se solicita con su botón, y si la
+API no existe o el permiso se niega la inspección se guarda igual. Decisiones, privacidad y límites:
+[`docs/capabilities.md`](docs/capabilities.md).
+
+### Qué se agregó
+
+| Artefacto | Función |
+| --- | --- |
+| `src/lib/device/camera.ts` | Cámara en vivo con permisos mínimos (solo video), validación y reducción de la foto a JPEG ≤ 1280 px sin metadatos EXIF. |
+| `src/lib/device/geolocation.ts` | Una lectura aproximada (3 decimales, ±100 m mínimo), sin alta precisión ni seguimiento, con límite de espera propio. |
+| `src/lib/notifications/client.ts` | Permiso de notificaciones bajo clic y aviso de cambio: service worker → constructor de página → aviso en la página. |
+| `src/lib/device/permissions.ts`, `src/lib/device/evidence.ts` | Consulta de permisos sin abrir diálogos y tipo de la evidencia opcional. |
+| `src/components/evidence-capture.tsx`, `src/components/notification-preferences.tsx` | Bloque «Evidencia opcional» y botón «Activar avisos» del formulario. |
+| `public/sw.js` | Eventos `push` (JSON o texto, solo rutas del mismo origen) y `notificationclick`. |
+| `tests/capabilities.spec.ts` | 74 pruebas: permisos solo bajo acción, fallback, privacidad, push e integración con la cola de la Semana 5. |
+| `scripts/check-capabilities-browser.mjs` | Comprobación opcional en Chromium real → `reports/capabilities-browser.json` y `evidence/s06/`. |
+| `docs/capabilities.md` | Permisos, fallback, privacidad, alternativas, trazabilidad, verificación, límites y fallos encontrados. |
+
+### Setup y ejecución
+
+Con Node 20 o superior (`.nvmrc`) y npm 10:
+
+```bash
+npm ci
+npm run dev                  # la captura funciona; los avisos usan el constructor de página
+npm run build && npm start   # producción: registra el service worker (necesario para push)
+```
+
+Abre <http://localhost:3000/inspecciones>. Cámara y ubicación requieren `localhost` o HTTPS.
+
+### Verificación
+
+El equivalente exacto de `make verify` y de lo que ejecuta CI:
+
+```bash
+npm ci
+make verify                  # en Windows sin make: npm run verify
+npm test                     # Vitest con cobertura (coverage/) y reporte JUnit (test-results/junit.xml)
+npm run build
+bash public-tests/check.sh   # requiere ripgrep (rg); sin rg, usa el equivalente con git grep de la Semana 4
+```
+
+`npm test` falla si la cobertura de `src/lib/device` o `src/lib/notifications` baja de 95 % (90 % en ramas).
+Las pruebas de notificaciones de la primera versión siguen en `tests/notifications.spec.ts`.
+
+Comprobación opcional en Chromium real (22 escenarios: cámara falsa, ubicación sintética, permisos
+negados, diálogos sin responder, push y modo sin red), con `npm start` corriendo en otra terminal:
+
+```bash
+npm i --no-save playwright && npx playwright install chromium
+npm run check:capabilities-browser
+```
+
+La prueba manual paso a paso (DevTools → Sensors para una ubicación sintética y botón **Push** de
+Application → Service workers) está en la sección 8 de [`docs/capabilities.md`](docs/capabilities.md).
+
+### Supuestos y límites
+
+- Solo datos sintéticos. Para demostrar se usa una imagen sintética (por ejemplo `public/icons/icon-512x512.png`)
+  y una ubicación sintética en DevTools; fotografía solo equipos, nunca personas.
+- La evidencia viaja dentro de la mutación de la Semana 5 (IndexedDB y `POST /api/inspecciones`). La API de
+  demostración no guarda ni valida la evidencia.
+- No hay suscripción Web Push ni servidor de envío: requeriría claves VAPID fuera del repositorio. El worker
+  ya muestra un push entrante.
+- En iOS las notificaciones web requieren la PWA instalada (iOS 16.4+); Safari anterior a 15 no puede
+  procesar la foto y la inspección se guarda sin ella.
+
+### Evidencia de la Semana 6
+
+| Elemento | Ubicación |
+| --- | --- |
+| Rama y SHA evaluado | `dev-carlos`; el SHA queda registrado en la sección de Carlos de [`evidence/individual.md`](evidence/individual.md) |
+| Actions | <https://github.com/Chocotzi/PWA-10B-E03/actions> (archivo `week-06-w06-device-push.yml`; artefacto `academic-evidence-w06-device-push` con `coverage/` y `test-results/`) |
+| Decisiones y trazabilidad | [`docs/capabilities.md`](docs/capabilities.md) |
+| Comprobación en Chromium | [`reports/capabilities-browser.json`](reports/capabilities-browser.json), capturas en [`evidence/s06/`](evidence/s06/) |
+| Evidencia individual | [`evidence/individual.md`](evidence/individual.md) |
+
+Autoría: primera versión de cámara y ubicación, Cleber (`62f9c36`); cliente de notificaciones, Benkis
+(`b37c1e7`); integración al formulario, privacidad, fallback, push en el worker, pruebas y documentación,
+Carlos (rama `dev-carlos`).
+
+## Semana 8 — Pirámide de pruebas e integración continua
 
 Este repositorio contiene la PWA desarrollada para la Universidad Tecnológica de Tehuacán. En esta etapa (Semana 8) se integró la suite de pruebas automatizadas en tres capas (Unitarias, Integración y E2E), la verificación continua en GitHub Actions y la estrategia de aseguramiento de calidad ante fallos de conectividad y hardware.
 
----
-
-## 1. Requisitos del Entorno
+### Requisitos del Entorno
 
 * **Node.js:** `>=20.9.0` (recomendado v20.x, declarado en `.nvmrc` y `package.json`).
 * **npm:** `>=10.0.0`
 * **Sistema Operativo:** macOS, Linux o Windows.
 
----
-
-## 2. Instalación y Setup
+### Instalación y Setup
 
 Para una instalación limpia y determinista con el archivo de bloqueo:
 
@@ -20,9 +387,7 @@ Para una instalación limpia y determinista con el archivo de bloqueo:
 npm ci
 ```
 
----
-
-## 3. Ejecución de la Aplicación
+### Ejecución de la Aplicación
 
 ```bash
 # Modo desarrollo (puerto 3000 por defecto)
@@ -35,9 +400,7 @@ npm run build
 npm start
 ```
 
----
-
-## 4. Comandos de Comprobación y Verificación
+### Comandos de Comprobación y Verificación
 
 La verificación automatizada se ejecuta localmente mediante `make verify` o `npm run verify`:
 
@@ -49,9 +412,7 @@ La verificación automatizada se ejecuta localmente mediante `make verify` o `np
 | `npm run build` | `next build` | Valida tipado estático con TypeScript y compila el bundle de producción sin errores. |
 | `bash public-tests/check.sh` | - | Verifica checks públicos de artefactos y ausencia de secretos expuestos. |
 
----
-
-## 5. Estructura de Pruebas de la Semana 8
+### Estructura de Pruebas de la Semana 8
 
 * **`tests/unit/`:** Pruebas unitarias sobre funciones puras, validación estricta de IDs, ordenamiento, cola de sincronización con deduplicación/idempotencia (`queue-idempotency.spec.ts`) y fallbacks de hardware.
 * **`tests/integration/`:** Pruebas de integración sobre persistencia en IndexedDB (`fake-indexeddb`) sin conexión y reintentos sin duplicados en el endpoint `/api/inspecciones`.
@@ -60,9 +421,7 @@ La verificación automatizada se ejecuta localmente mediante `make verify` o `np
 * **`.github/workflows/academic-evaluation.yml`:** Pipeline de CI automatizado con etapas de instalación limpia, comprobación de tipos, build, ejecución de capas de pruebas y publicación de artefactos.
 * **`evidence/individual.md`:** Evidencia individual de cada estudiante conforme a la plantilla requerida.
 
----
-
-## 6. Política de Datos Sintéticos
+### Política de Datos Sintéticos
 
 La aplicación utiliza exclusivamente datos sintéticos:
 * Identificadores con formato `inspection-00X` o `synthetic-[UUID]`.

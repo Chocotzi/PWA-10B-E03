@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-10-11T21:15:21.201Z",
+  "baseUrl": "http://localhost:3000",
+  "browser": "Chromium 141.0.7390.37",
+  "status": "pass",
+  "passed": 22,
+  "total": 22,
+  "results": [
+    {
+      "name": "service worker activo en producción",
+      "ok": true,
+      "detail": "activating"
+    },
+    {
+      "name": "al cargar no se pide cámara, ubicación ni notificaciones",
+      "ok": true,
+      "detail": "{\"getUserMedia\":0,\"getCurrentPosition\":0,\"watchPosition\":0,\"requestPermission\":0}"
+    },
+    {
+      "name": "«Activar avisos» pide permiso una sola vez",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "con permiso, el estado indica avisos activados",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "ubicación redondeada (18.123, -97.654 · ±100 m) sin alta precisión",
+      "ok": true,
+      "detail": "{\"enableHighAccuracy\":false,\"timeout\":10000,\"maximumAge\":300000}"
+    },
+    {
+      "name": "getUserMedia sin audio y con cámara trasera preferida",
+      "ok": true,
+      "detail": "{\"audio\":false,\"video\":{\"facingMode\":{\"ideal\":\"environment\"},\"width\":{\"ideal\":1280},\"height\":{\"ideal\":720}}}"
+    },
+    {
+      "name": "al capturar se detienen todos los tracks de la cámara",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "la foto de la cámara es un JPEG",
+      "ok": true,
+      "detail": "Foto adjunta: 1280 × 720 px, 12 KB, sin metadatos."
+    },
+    {
+      "name": "el archivo de entrada sí traía EXIF con el marcador",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "la foto guardada ya no trae EXIF ni el marcador",
+      "ok": true,
+      "detail": "111980 → 16716 bytes"
+    },
+    {
+      "name": "aviso del sistema «Inspección guardada» mediante el service worker",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "aviso del sistema «Sincronización completada» mediante el service worker",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "los avisos no muestran al responsable",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "un push entrante se muestra (mismo mecanismo que el botón Push de DevTools)",
+      "ok": true,
+      "detail": "{\"title\":\"Revisión pendiente\",\"body\":\"Laboratorio de Redes requiere atención.\",\"tag\":\"inspecciones-push\",\"url\":\"/inspecciones\"}"
+    },
+    {
+      "name": "un push con URL externa abre /inspecciones",
+      "ok": true,
+      "detail": "/inspecciones"
+    },
+    {
+      "name": "sin red queda pendiente y al volver la red se sincroniza con aviso",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "a 360 px no hay desplazamiento horizontal",
+      "ok": true,
+      "detail": "scrollWidth=360"
+    },
+    {
+      "name": "ubicación negada: se explica y se puede guardar sin ella",
+      "ok": true,
+      "detail": "Permiso de ubicación denegado. Puedes guardar la inspección sin ubicación."
+    },
+    {
+      "name": "cámara negada: se ofrece «Elegir imagen»",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "sin permisos la inspección se guarda y se sincroniza",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "diálogo de cámara sin responder: «Elegir imagen» sigue habilitado",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "diálogo de ubicación sin responder: el límite propio responde «tardó demasiado»",
+      "ok": true,
+      "detail": "20 s"
+    }
+  ],
+  "pageErrors": []
+}

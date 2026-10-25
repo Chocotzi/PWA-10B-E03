@@ -12,6 +12,7 @@
     "test": "node tests/starter.spec.mjs && vitest run",
     "test:unit": "vitest run tests/unit",
     "measure:rendering": "node scripts/measure-rendering.mjs",
+    "check:capabilities-browser": "node scripts/check-capabilities-browser.mjs",
     "verify": "node scripts/verify.mjs"
   },
   "dependencies": {
@@ -25,6 +26,7 @@
     "@types/node": "^20.14.15",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
+    "@vitest/coverage-v8": "^3.2.7",
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^26.1.0",
     "typescript": "^5.4.5",
