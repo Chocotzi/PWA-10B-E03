@@ -30,16 +30,38 @@ Conserven las secciones de semanas anteriores. Copien este bloque por cada integ
 - Limitación o riesgo: El endpoint `/api/inspecciones` es una implementación de demostración en memoria (`Map` en el proceso del servidor), por lo que la idempotencia probada aquí no sobrevive a un reinicio del servidor ni se replica entre instancias; en un backend real se necesitaría una tabla de deduplicación persistente. Además, `fake-indexeddb` no reproduce con exactitud los límites de cuota ni la concurrencia entre pestañas de un navegador real.
 - IA: herramienta, propósito, partes influidas y validación propia; o «no utilicé IA»: Usé Claude para analizar la arquitectura del repositorio, identificar que faltaba el escenario de caída de red dentro de `tests/integration/` y redactar la prueba siguiendo el estilo ya usado en el archivo. Revisé y entiendo la prueba generada (el patrón de `SyncTransport` con contador de intentos, las aserciones sobre `storage.list()` y los valores de `flush()`).
 
-## Nombre: [Compañero 3 - Módulo E2E & Automatización CI/CD]
+## Nombre: Carlos Andrés Arriaga Márquez (matrícula 3523110609)
 
-- Grupo y equipo: 10B · Equipo 03
-- Mi contribución de esta semana y enlace: Implementación de pruebas E2E del flujo crítico en [`tests/e2e/`](../tests/e2e/) y workflow de CI en [`.github/workflows/academic-evaluation.yml`](../.github/workflows/academic-evaluation.yml).
-- Decisión técnica y motivo: [Completar por el integrante: Decisión técnica y motivo]
-- Prueba/comando que ejecuté: `npx vitest run tests/e2e`
-- Resultado observado y enlace al reporte: [Completar por el integrante: Resultado observado y enlace]
-- Qué demuestra y qué no demuestra: [Completar por el integrante: Qué demuestra y qué no demuestra]
-- Limitación o riesgo: [Completar por el integrante: Limitación o riesgo]
-- IA: herramienta, propósito, partes influidas y validación propia; o «no utilicé IA»: [Completar por el integrante]
+- Grupo y equipo: 10B · Equipo 03 · líder de la Semana 8; responsable de E2E, pipeline de CI y README.
+- Mi contribución de esta semana y enlace:
+  - Integré `main` (Semana 6) en la rama de trabajo, que había nacido antes del PR #2, y resolví los conflictos de `README.md`, `inspection-capture-client.tsx`, `.gitignore` y esta evidencia (commit `b75a6e5`).
+  - Escribí el E2E del flujo crítico en jsdom ([`tests/e2e/critical-inspection-flow.spec.ts`](../tests/e2e/critical-inspection-flow.spec.ts), `34bfb13`).
+  - Escribí el E2E en Chromium real ([`tests/e2e/critical-inspection-flow.pw.ts`](../tests/e2e/critical-inspection-flow.pw.ts) y [`playwright.config.ts`](../playwright.config.ts), `332b7d3`).
+  - Configuré lint, comprobación de tipos y pruebas por capa con JUnit y cobertura ([`eslint.config.mjs`](../eslint.config.mjs), [`vitest.config.mts`](../vitest.config.mts), `c5cb67c`).
+  - Rehice el workflow ([`.github/workflows/academic-evaluation.yml`](../.github/workflows/academic-evaluation.yml)), su resumen ([`scripts/ci-summary.mjs`](../scripts/ci-summary.mjs)) y `make verify` (`ebfad71`).
+  - Actualicé el [README](../README.md) y las secciones de E2E, defecto controlado y CI de [`docs/test-strategy.md`](../docs/test-strategy.md).
+- Decisión técnica y motivo: probé el flujo crítico en dos niveles.
+  - En jsdom, la pantalla real usa el handler real de `POST /api/inspecciones` en el mismo proceso. Es rápido y permite casos difíciles de provocar en un navegador, como la respuesta perdida tras aplicarse en el servidor.
+  - En Chromium contra `next start`, la recarga sin red solo es real con el service worker y la IndexedDB del navegador, y el kit pide documentar el servidor del E2E.
+  - Además, la cobertura se mide solo en la suite completa: con el umbral global de la Semana 6, cualquier capa ejecutada sola fallaba aunque sus pruebas pasaran.
+- Prueba/comando que ejecuté: `npx vitest run tests/e2e && npm run build`; además `npm run test:e2e:browser` y el pipeline completo en un clon limpio con Node 20 (los mismos comandos del workflow).
+- Resultado observado y enlace al reporte:
+  - E2E en jsdom: 4/4 (`test-results/e2e.xml`). `npm run build` terminó sin errores.
+  - E2E en Chromium: 2/2 (`test-results/e2e-browser.xml`, `playwright-report/`), y 10/10 al repetirlo cinco veces.
+  - Con defectos introducidos a propósito, el E2E en jsdom falló en los cinco casos y el de Chromium en los tres que probé: quitar la protección de duplicados, la persistencia o la sincronización al volver la red; en jsdom también dos `flush` en paralelo y el `currentTarget` de la Semana 5.
+  - El defecto controlado y su reversión están en `docs/test-strategy.md` §4.4. Los reportes de CI quedan en el artefacto `academic-evaluation-s08-<SHA>` de cada ejecución.
+- Qué demuestra y qué no demuestra:
+  - Demuestra que, desde la interfaz, una inspección guardada sin red sobrevive a una recarga real sin red y se sincroniza una sola vez al volver la conexión. También que reenviar la misma operación no crea otro registro y que negar cámara y ubicación no impide completar la captura.
+  - No demuestra Safari, Firefox ni iOS, varias pestañas a la vez, un servidor persistente o con varias instancias, sensores físicos ni rendimiento con muchas inspecciones. El nivel jsdom no ejecuta el service worker.
+- Limitación o riesgo:
+  - `npm run typecheck` no revisa `tests/`.
+  - El lint quedó con avisos de línea base (`docs/test-strategy.md` §7).
+  - El E2E en Chromium depende del build y descarga el navegador en CI.
+  - Al integrar `main`, las 8 pruebas de `tests/unit/device-capabilities.spec.ts` quedaron llamando funciones que la Semana 6 reemplazó; el pipeline lo detecta en la etapa de unitarias (corrección a cargo de Cleber).
+- IA: herramienta, propósito, partes influidas y validación propia:
+  - Herramienta y propósito: usé Claude (Anthropic) en una sesión con un clon del repositorio para analizar las ramas, diagnosticar el merge con `main`, diseñar las pruebas y generar el código y la documentación.
+  - Partes influidas: los archivos listados en «Mi contribución» y esta sección.
+  - Validación propia: revisé el diff de cada commit antes de subirlo y ejecuté en mi equipo `npm ci`, `npx vitest run tests/e2e`, `npm run build` y `npm run test:e2e:browser`, con este resultado: ⟨completar⟩.
 
 El SHA final común se entrega en Classroom tras el último commit. No inserten ese SHA en un nuevo commit para intentar identificar el mismo archivo.
 

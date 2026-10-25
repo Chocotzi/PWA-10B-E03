@@ -20,9 +20,9 @@ Conforme al requerimiento AC-04 de la semana 8, se mapearon los riesgos crítico
 | Riesgo Técnico / Operativo | Capa Asignada | Archivo de Prueba | Justificación de la Capa |
 | :--- | :--- | :--- | :--- |
 | **1. Captura inválida:** IDs malformados, fechas no estandarizadas o campos fuera de rango. | **Unitaria** | `tests/unit/inspections-domain.spec.ts` | Las reglas de validación son funciones puras e independientes de la interfaz; la prueba unitaria ofrece retroalimentación instantánea (< 10 ms) ante cualquier entrada inválida. |
-| **2. Persistencia y reconexión:** Pérdida de inspecciones capturadas sin red tras recargar el navegador. | **Integración** / **E2E** | `tests/integration/offline-persistence-and-sync.spec.ts`<br>`tests/e2e/critical-inspection-flow.spec.ts` | Requiere validar que la capa de almacenamiento en IndexedDB sobreviva al cierre/reapertura de pestañas y que el estado se reconcilie en la interfaz al volver el evento `online`. |
-| **3. Duplicado de sincronización:** Reenvío de una misma mutación creando múltiples registros en el servidor. | **Unitaria** & **Integración** | `tests/unit/queue-idempotency.spec.ts`<br>`tests/integration/offline-persistence-and-sync.spec.ts` | La deduplicación opera en dos frentes: la cola cliente deduplica llamadas a `flush()` compartiendo la misma promesa de drenaje, y el endpoint `/api/inspecciones` valida la clave de idempotencia (`mutation.id`). |
-| **4. Permisos de dispositivo no disponibles:** Bloqueo de la aplicación por cámara o GPS denegados/ausentes. | **Unitaria** & **E2E** | `tests/unit/device-capabilities.spec.ts`<br>`tests/e2e/critical-inspection-flow.spec.ts` | Debe asegurarse que las funciones `captureImage` y `getCurrentLocation` retornen datos sintéticos de respaldo (*fallback*) y que el formulario permita completar el registro sin colapsar. |
+| **2. Persistencia y reconexión:** Pérdida de inspecciones capturadas sin red tras recargar el navegador. | **Integración** / **E2E** | `tests/integration/offline-persistence-and-sync.spec.ts`<br>`tests/e2e/critical-inspection-flow.spec.ts`<br>`tests/e2e/critical-inspection-flow.pw.ts` | Requiere validar que la capa de almacenamiento en IndexedDB sobreviva al cierre/reapertura de pestañas y que el estado se reconcilie en la interfaz al volver el evento `online`. La recarga real sin red (service worker + IndexedDB del navegador) solo se puede comprobar en un navegador: E2E en Chromium. |
+| **3. Duplicado de sincronización:** Reenvío de una misma mutación creando múltiples registros en el servidor. | **Unitaria** & **Integración** & **E2E** | `tests/unit/queue-idempotency.spec.ts`<br>`tests/integration/offline-persistence-and-sync.spec.ts`<br>`tests/e2e/critical-inspection-flow.spec.ts`<br>`tests/e2e/critical-inspection-flow.pw.ts` | La deduplicación opera en dos frentes: la cola cliente deduplica llamadas a `flush()` compartiendo la misma promesa de drenaje, y el endpoint `/api/inspecciones` valida la clave de idempotencia (`mutation.id`). El E2E lo comprueba desde la interfaz: dos eventos `online` seguidos, respuesta perdida con reintento y reenvío de la misma operación al servidor real. |
+| **4. Permisos de dispositivo no disponibles:** Bloqueo de la aplicación por cámara o GPS denegados/ausentes. | **Unitaria** & **E2E** | `tests/unit/device-capabilities.spec.ts`<br>`tests/e2e/critical-inspection-flow.spec.ts`<br>`tests/e2e/critical-inspection-flow.pw.ts` | Debe asegurarse que las funciones `captureImage` y `getCurrentLocation` retornen datos sintéticos de respaldo (*fallback*) y que el formulario permita completar el registro sin colapsar. En el E2E, la cámara y la ubicación se niegan desde la interfaz y la inspección se guarda sin esa evidencia o con una imagen sintética elegida con «Elegir imagen». |
 
 ---
 
@@ -52,8 +52,18 @@ Conforme al requerimiento AC-04 de la semana 8, se mapearon los riesgos crítico
 * **Idempotencia remota:** Reintentos múltiples de la misma mutación al endpoint `/api/inspecciones` respondiendo `200 OK` con la misma revisión aplicada en lugar de crear duplicados o conflicto `409`.
 
 ### 3.3. Pruebas End-to-End (`tests/e2e/`)
-* **Flujo crítico de usuario:** Creación en interfaz con `navigator.onLine = false` ➔ guardado en IndexedDB ➔ desmontaje y remonte del componente simulando recarga ➔ activación del evento `online` ➔ sincronización exitosa y actualización de la vista.
-* **Variante sin permisos:** Captura completada exitosamente a pesar de cámara o GPS denegados mediante el uso de datos sintéticos.
+
+Dos niveles sobre la misma pantalla `/inspecciones`, manejada solo con acciones de usuario (detalle en `tests/e2e/README.md`):
+
+* **jsdom (`critical-inspection-flow.spec.ts`, `npm run test:e2e`):** pantalla real con IndexedDB simulada (`fake-indexeddb`) y `fetch` dirigido al handler real de `POST /api/inspecciones` en el mismo proceso.
+  * Flujo crítico: sin conexión ➔ guardar ➔ recarga (desmontar y montar; solo queda IndexedDB) ➔ dos eventos `online` seguidos ➔ una sola inspección creada en el servidor y cola local vacía.
+  * Respuesta perdida: el servidor aplica pero el cliente no recibe la respuesta; tras recargar, el reintento con la misma clave recibe el mismo acuse (200) y no se crea otro registro.
+  * Cámara y ubicación negadas (`NotAllowedError`, `PERMISSION_DENIED`): la pantalla lo explica, no se piden permisos al cargar y la inspección se guarda y sincroniza sin evidencia.
+  * Capacidades ausentes (sin `mediaDevices`, `geolocation` ni `createImageBitmap`): la captura se completa sin bloquear la pantalla.
+* **Chromium real (`critical-inspection-flow.pw.ts`, `npm run test:e2e:browser`):** build de producción servido con `next start` en el puerto 3100 (lo arranca `playwright.config.ts`).
+  * Flujo crítico con desconexión real (`context.setOffline`), recarga real servida por el service worker, reconexión y una sola inspección creada; reenviar la misma operación al servidor devuelve 200 con el mismo acuse.
+  * Permisos negados (el contexto no concede ninguno): la captura se completa con una imagen sintética (ícono de la PWA) y sin ubicación.
+* **Aislamiento:** base IndexedDB y módulo del handler nuevos por caso (jsdom); contexto nuevo por caso y laboratorio con nombre único (Chromium).
 
 ---
 
@@ -105,6 +115,39 @@ $ npx vitest run tests/integration/offline-persistence-and-sync.spec.ts
    Duration  290ms
 ```
 
+### 4.4. El mismo defecto en E2E y en CI (rama temporal `s08/defecto-controlado`)
+
+La rama temporal tiene dos commits sobre la rama de trabajo: «DEFECTO CONTROLADO — omite la protección de duplicados» (comenta la consulta de `acknowledgements` en `POST /api/inspecciones`) y su reversión. Resultado de ejecutar el pipeline completo sobre cada commit (Node 20.20.2):
+
+| Etapa | Con el defecto | Tras restaurar |
+| :--- | :--- | :--- |
+| Integración (`npm run test:integration`) | ❌ 3/4 | ✅ 4/4 |
+| E2E en jsdom (`npm run test:e2e`) | ❌ 3/4 | ✅ 4/4 |
+| E2E en Chromium (`npm run test:e2e:browser`) | ❌ 1/2 | ✅ 2/2 |
+| Suite completa (`npm test`) | ❌ fallan esas mismas pruebas y `tests/write-endpoint.spec.ts` (Semana 5) | ✅ esas pruebas vuelven a pasar |
+
+Salida con el defecto (extracto):
+
+```text
+FAIL  tests/e2e/critical-inspection-flow.spec.ts > E2E (jsdom) · flujo crítico de captura offline > si se pierde la respuesta del servidor, el reintento tras recargar no duplica la inspección
+AssertionError: expected 'Conflicto de sincronización. 1 inspec…' to be 'Sincronización completada. 1 inspecci…'
+Expected: "Sincronización completada. 1 inspección enviada al servidor."
+Received: "Conflicto de sincronización. 1 inspección requiere revisión; la copia local se conservó."
+
+✘ [chromium] › critical-inspection-flow.pw.ts › flujo crítico de captura offline › crear → guardar sin conexión → recargar sin red → reconectar → una sola inspección sincronizada
+Error: expect(received).toBe(expected)
+Expected: 200
+Received: 409
+> 102 |     expect(replay.status()).toBe(200);
+```
+
+Lectura: sin la protección, un reintento de la misma operación (respuesta perdida o reenvío) ya no recibe el acuse previo; el servidor la trata como una escritura nueva sobre una revisión vieja y responde 409, y la interfaz deja la inspección como conflicto aunque ya se había guardado.
+
+Ejecuciones de GitHub Actions:
+
+* Fallo (commit del defecto): PENDIENTE — pegar el enlace de la ejecución.
+* Recuperación (commit de reversión): PENDIENTE — pegar el enlace de la ejecución.
+
 ---
 
 ## 5. Política de Datos Sintéticos y Privacidad
@@ -118,21 +161,31 @@ $ npx vitest run tests/integration/offline-persistence-and-sync.spec.ts
 ## 6. Comandos de Verificación Local
 
 ```bash
-# Ejecutar suite completa (Unitarias, Integración, E2E)
-npm test
-
-# Ejecutar únicamente pruebas unitarias
-npm run test:unit
-
-# Ejecutar pruebas de integración
-npx vitest run tests/integration
-
-# Ejecutar pruebas E2E
-npx vitest run tests/e2e
-
-# Verificar build de producción
+# Instalación limpia y build de producción
+npm ci
 npm run build
 
-# Verificación de artefactos
-npm run verify
+# Comprobación completa: lint + tipos + artefactos + suite completa con cobertura
+make verify          # sin make: npm run lint && npm run typecheck && npm run verify && npm test
+
+# Capas por separado (cada una escribe su JUnit en test-results/)
+npm run test:unit
+npm run test:integration
+npm run test:e2e
+
+# E2E en Chromium real (requiere el build y, una vez, npx playwright install chromium)
+npm run test:e2e:browser
 ```
+
+---
+
+## 7. Integración continua y lint
+
+* **Workflow:** `.github/workflows/academic-evaluation.yml`, en push a cualquier rama y en PR a `main`. Etapas: `npm ci` → `npm run lint` → `npm run typecheck` → `npm run build` → `npm run verify` → unitarias → integración → E2E en jsdom → `npm test` con cobertura → E2E en Chromium. La tabla con el comando de cada etapa está en el README (Semana 8, «Pipeline de CI»).
+* **Cuándo falla:** cada etapa corre si su requisito terminó bien, para ver todos los fallos en una sola ejecución; el job queda en rojo si falla cualquiera.
+* **Reportes:** se publican siempre, también si falla una prueba: JUnit por capa (`test-results/`), cobertura (`coverage/`), reporte de Playwright (`playwright-report/`) y `reports/verification.json`, en el artefacto `academic-evaluation-s08-<SHA>`. La página de la ejecución resume cada etapa con su conteo de pruebas y la cobertura.
+* **Línea base de lint:** se adoptó `eslint-config-next` (Next.js 16) en esta semana. Lo que ya existía y es intencional quedó como aviso en lugar de error:
+  * `@next/next/no-html-link-for-pages`: los `<a href="/">` hacen una navegación completa a propósito, para que el service worker resuelva la portada y la página sin conexión.
+  * `react-hooks/refs` y `react-hooks/set-state-in-effect`: son reglas pensadas para React Compiler; el proyecto usa React 18 sin compilador y esos componentes leen APIs del navegador después de montar.
+  * `@typescript-eslint/no-explicit-any` en `tests/**`: los dobles de prueba simulan APIs del navegador parcialmente.
+  * Cualquier error nuevo detiene el pipeline. Revisar estos avisos queda como deuda técnica registrada.
