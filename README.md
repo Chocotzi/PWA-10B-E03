@@ -4,44 +4,60 @@ Starter oficial para la materia **Aplicaciones Web Progresivas**.
 
 ## 1. Setup
 
-Para preparar el entorno de desarrollo local, asegúrate de cumplir con los siguientes requisitos e instalar las dependencias:
+Requisitos:
 
-- **Node.js**: Versión 20 LTS o superior.
-- **npm**: Versión 10 o superior.
+- **Node.js** `>=20.9.0`, declarado en `engines` de `package.json`; `.nvmrc` fija la versión 20 (la que usa CI).
+- **npm** 10 o superior.
 - **Git** y una cuenta de GitHub.
+- Solo para el E2E en navegador: el Chromium de Playwright (`npx playwright install chromium`, una vez por equipo).
 
-**Instalación:**
-Clona este repositorio y ejecuta el siguiente comando en la raíz del proyecto para instalar las dependencias exactas:
+**Instalación limpia** (usa exactamente las versiones de `package-lock.json`):
+
 ```bash
 npm ci
 ```
 
 ## 2. Ejecución
 
-Para levantar el servidor de desarrollo y visualizar la aplicación, ejecuta:
 ```bash
-npm run dev
+npm run dev                  # desarrollo en http://localhost:3000 (sin service worker)
+npm run build && npm start   # producción en http://localhost:3000 (registra el service worker)
 ```
-Abre <http://localhost:3000> en tu navegador. Deberías ver la pantalla inicial de inspecciones con datos sintéticos (Laboratorio de Redes, Electrónica y Software).
+
+Deberías ver la pantalla inicial de inspecciones con datos sintéticos (Laboratorio de Redes, Electrónica y
+Software). La captura offline está en <http://localhost:3000/inspecciones>.
 
 ## 3. Verificación
 
-Antes de enviar cualquier cambio, asegúrate de que el proyecto cumple con los estándares mediante los siguientes comandos:
+Antes de integrar cualquier cambio:
 
-**Verificación automática (linter, build y pruebas):**
 ```bash
-npm run verify
-npm test
+npm ci
 npm run build
+make verify
 ```
 
-**Verificación pública del starter:**
+`make verify` ejecuta comprobaciones reales y se detiene con error en la primera que falle. Su equivalente
+exacto sin `make` (por ejemplo en Windows) es:
+
 ```bash
-bash public-tests/check.sh
+npm run lint && npm run typecheck && npm run verify && npm test
 ```
-Estos comandos comprueban que el código compila correctamente y la estructura general es válida. `make verify` o `npm run verify` genera `reports/verification.json`.
 
-Además, para verificar la PWA: abre **Chrome DevTools -> Application -> Manifest** y comprueba que el archivo `manifest.webmanifest` carga sin errores y la PWA es instalable.
+| Comando | Qué ejecuta |
+| --- | --- |
+| `npm run lint` | `eslint .` con la configuración oficial de Next.js 16 (`eslint.config.mjs`). |
+| `npm run typecheck` | `tsc --noEmit` sobre `src/`. |
+| `npm run verify` | `node scripts/verify.mjs`: comprueba los artefactos de cada semana y que cada capa de pruebas tenga pruebas; escribe `reports/verification.json`. |
+| `npm test` | `node tests/starter.spec.mjs && vitest run --coverage`: suite completa con cobertura (`coverage/`) y JUnit (`test-results/junit.xml`). |
+| `npm run build` | `next build`: compilación de producción (incluye la comprobación de tipos de Next.js). |
+| `bash public-tests/check.sh` | Checks públicos del curso (requiere ripgrep, `rg`). |
+
+Las pruebas por capa, el E2E en navegador y las etapas de CI están en la sección
+[Semana 8](#semana-8--pirámide-de-pruebas-e-integración-continua).
+
+Además, para verificar la PWA: abre **Chrome DevTools -> Application -> Manifest** y comprueba que el archivo
+`manifest.webmanifest` carga sin errores y la PWA es instalable.
 
 ## 4. Evidencia
 
@@ -368,3 +384,108 @@ Application → Service workers) está en la sección 8 de [`docs/capabilities.m
 Autoría: primera versión de cámara y ubicación, Cleber (`62f9c36`); cliente de notificaciones, Benkis
 (`b37c1e7`); integración al formulario, privacidad, fallback, push en el worker, pruebas y documentación,
 Carlos (rama `dev-carlos`).
+
+## Semana 8 — Pirámide de pruebas e integración continua
+
+El flujo crítico (crear → guardar sin conexión → recargar → reconectar → sincronizar sin duplicar) y la
+captura con permisos negados quedan cubiertos por pruebas automáticas en tres capas, y GitHub Actions las
+ejecuta en cada push. La estrategia, la matriz riesgo–prueba, el diagnóstico y el defecto controlado están en
+[`docs/test-strategy.md`](docs/test-strategy.md).
+
+Autoría: pruebas unitarias y estrategia, Cleber; pruebas de integración, Benkis; E2E, workflow de CI, lint y
+este README, Carlos. El trabajo se integró en la rama `dev-benkis` junto con la Semana 6 de `main`.
+
+### Setup, arranque y verificación
+
+Con Node `>=20.9.0` (`.nvmrc`: 20) y npm 10:
+
+```bash
+npm ci                                  # instalación limpia
+npm run build && npm start              # arranque de producción (http://localhost:3000)
+make verify                             # lint + tipos + artefactos + suite completa
+npx playwright install chromium         # una vez por equipo, para el E2E en navegador
+npm run test:e2e:browser                # E2E en Chromium (requiere el build)
+```
+
+### Pruebas por capa
+
+| Capa | Archivos | Comando | Reporte |
+| --- | --- | --- | --- |
+| Unitarias | `tests/unit/*.spec.ts` | `npm run test:unit` (`vitest run tests/unit`) | `test-results/unit.xml` |
+| Integración | `tests/integration/*.spec.ts` | `npm run test:integration` (`vitest run tests/integration`) | `test-results/integration.xml` |
+| E2E en jsdom | `tests/e2e/critical-inspection-flow.spec.ts` | `npm run test:e2e` (`vitest run tests/e2e`) | `test-results/e2e.xml` |
+| E2E en Chromium | `tests/e2e/critical-inspection-flow.pw.ts` | `npm run test:e2e:browser` (`playwright test`) | `test-results/e2e-browser.xml`, `playwright-report/` |
+| Suite completa | todo `tests/**/*.spec.ts`, incluidas las pruebas de las semanas 2 a 6 en `tests/*.spec.ts` | `npm test` | `test-results/junit.xml`, `coverage/` |
+
+Cada capa se puede ejecutar sola. La cobertura se mide solo en `npm test`, porque el umbral de la Semana 6
+(95 % en `src/lib/device/**` y `src/lib/notifications/**`) depende de toda la suite; el reporte cubre todo
+`src/` para mostrar huecos y se genera aunque falle una prueba.
+
+**Servidor usado por el E2E.** El E2E en Chromium usa el build de producción: `playwright.config.ts`
+arranca `npm run start -- --port 3100` (`next start`), espera a que responda `/inspecciones` y lo detiene al
+terminar. Se necesita producción porque solo ahí se registra el service worker que permite recargar sin red.
+El E2E en jsdom no levanta servidor: `fetch` llega al handler real de `POST /api/inspecciones` dentro del
+mismo proceso. Detalle de escenarios y aislamiento en [`tests/e2e/README.md`](tests/e2e/README.md).
+
+### Pipeline de CI
+
+Archivo: [`.github/workflows/academic-evaluation.yml`](.github/workflows/academic-evaluation.yml). Corre en
+push a cualquier rama, en pull requests hacia `main` y manualmente. Los workflows de las semanas 1 a 6 se
+conservan como retroalimentación de esas semanas.
+
+| # | Etapa | Comando | Falla si… |
+| --- | --- | --- | --- |
+| 1 | Instalación limpia | `npm ci --no-audit --no-fund` | el lockfile no coincide o falla una dependencia |
+| 2 | Lint | `npm run lint` | ESLint reporta un error (los avisos se muestran pero no fallan) |
+| 3 | Tipos | `npm run typecheck` | hay errores de TypeScript en `src/` |
+| 4 | Build | `npm run build` | `next build` falla |
+| 5 | Artefactos | `npm run verify` | falta un artefacto o una capa no tiene pruebas |
+| 6 | Unitarias | `npm run test:unit` | falla una prueba unitaria |
+| 7 | Integración | `npm run test:integration` | falla una prueba de integración |
+| 8 | E2E en jsdom | `npm run test:e2e` | falla el flujo crítico o la variante de permisos |
+| 9 | Suite completa con cobertura | `npm test` | falla cualquier prueba o no se cumple el umbral de cobertura |
+| 10 | E2E en Chromium | `npx playwright install --with-deps chromium` y `npm run test:e2e:browser` | falla el flujo en el navegador real |
+
+Cada etapa corre si su requisito terminó bien (por ejemplo, las pruebas corren aunque falle el lint), para
+ver todos los fallos en una sola ejecución; el job termina en rojo si falla cualquiera. Al final, siempre,
+se publica el artefacto `academic-evaluation-s08-<SHA>` con `test-results/`, `coverage/`,
+`playwright-report/` y `reports/verification.json`, y la página de la ejecución muestra un resumen por etapa
+con el conteo de pruebas y la cobertura (`scripts/ci-summary.mjs`).
+
+### Defecto controlado
+
+En la rama temporal `s08/defecto-controlado` se quitó la protección de duplicados de
+`POST /api/inspecciones` y después se restauró. Las pruebas que fallaron, la salida y los enlaces a las dos
+ejecuciones de CI están en la sección 4 de [`docs/test-strategy.md`](docs/test-strategy.md). El defecto no se
+integró.
+
+### Datos sintéticos y privacidad
+
+- Solo datos sintéticos: laboratorios como «Laboratorio Sintético E2E-01», responsables «Técnica sintética
+  E2E» y, como imagen, el ícono de la propia PWA (`public/icons/icon-192x192.png`).
+- La aplicación no inventa coordenadas ni imágenes cuando falta una capacidad o se niega un permiso: guarda la
+  inspección sin esa evidencia (decisión de la Semana 6). Los datos sintéticos de dispositivo viven solo en
+  los dobles de prueba.
+- No hay secretos, tokens ni datos personales en el repositorio ni en los reportes de CI.
+
+### Supuestos y límites
+
+- `npm run typecheck` revisa `src/`; los archivos de prueba no pasan por `tsc` (Vitest y Playwright los
+  transpilan sin comprobar tipos).
+- El lint se adoptó en esta semana: lo que ya existía y es intencional quedó como aviso (detalle en
+  `docs/test-strategy.md` §7). Se usa ESLint 9 porque los plugins de `eslint-config-next` aún no declaran
+  compatibilidad con ESLint 10; por eso `npm ci` muestra un aviso de versión sin soporte.
+- El E2E en jsdom no ejecuta el service worker ni un navegador real; eso lo cubre el E2E en Chromium, que solo
+  corre en Chromium (no en Safari ni Firefox).
+- El servidor de la API guarda en memoria: la idempotencia se pierde si se reinicia el proceso.
+
+### Evidencia de la Semana 8
+
+| Elemento | Ubicación |
+| --- | --- |
+| Estrategia, matriz riesgo–prueba, diagnóstico y defecto controlado | [`docs/test-strategy.md`](docs/test-strategy.md) |
+| Pruebas | [`tests/unit/`](tests/unit/), [`tests/integration/`](tests/integration/), [`tests/e2e/`](tests/e2e/) |
+| Workflow | [`.github/workflows/academic-evaluation.yml`](.github/workflows/academic-evaluation.yml) |
+| Ejecuciones de CI | <https://github.com/Chocotzi/PWA-10B-E03/actions/workflows/academic-evaluation.yml>; el enlace del SHA final se entrega en Classroom |
+| Reportes | artefacto `academic-evaluation-s08-<SHA>` de cada ejecución |
+| Evidencia individual | [`evidence/individual.md`](evidence/individual.md) |

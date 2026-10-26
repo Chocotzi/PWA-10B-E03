@@ -1,0 +1,123 @@
+# Semana 8 — Pirámide de pruebas e integración continua.
+# Workflow de la actividad (retroalimentación; la calificación final usa el SHA fijado y checks privados).
+#
+# Orden: npm ci → lint → tipos → build → artefactos → unitarias → integración → E2E (jsdom)
+#        → suite completa con cobertura → E2E en Chromium contra `next start`.
+# Cada etapa corre si su requisito terminó bien, aunque otra etapa haya fallado, para que la ejecución
+# muestre todos los fallos a la vez; el job termina en rojo si falla cualquier etapa obligatoria.
+# Los reportes (JUnit, cobertura, Playwright) se publican siempre, también cuando una prueba falla.
+name: Academic Evaluation - Semana 8
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: academic-evaluation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  evaluate:
+    name: Verificación integral (AC-01 a AC-04)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: true
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Node.js según .nvmrc
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: AC-01 · Instalación limpia — npm ci
+        id: install
+        run: npm ci --no-audit --no-fund
+
+      - name: AC-03 · Lint — npm run lint
+        id: lint
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run lint
+
+      - name: AC-01 · Tipos — npm run typecheck
+        id: typecheck
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run typecheck
+
+      - name: AC-01 · Build de producción — npm run build
+        id: build
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run build
+
+      - name: AC-02 · Artefactos requeridos — npm run verify
+        id: artifacts
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run verify
+
+      - name: AC-02 · Unitarias — npm run test:unit
+        id: unit
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run test:unit
+
+      - name: AC-02 · Integración — npm run test:integration
+        id: integration
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run test:integration
+
+      - name: AC-02 · E2E en jsdom — npm run test:e2e
+        id: e2e
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run test:e2e
+
+      - name: AC-03 · Suite completa con cobertura — npm test
+        id: coverage
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm test
+
+      - name: Instalar Chromium de Playwright
+        id: browsers
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: npx playwright install --with-deps chromium
+
+      - name: AC-02 · E2E en Chromium con next start — npm run test:e2e:browser
+        id: e2e_browser
+        if: ${{ !cancelled() && steps.browsers.outcome == 'success' }}
+        run: npm run test:e2e:browser
+
+      - name: Resumen de la ejecución
+        if: ${{ always() }}
+        env:
+          STAGE_INSTALL: ${{ steps.install.outcome }}
+          STAGE_LINT: ${{ steps.lint.outcome }}
+          STAGE_TYPECHECK: ${{ steps.typecheck.outcome }}
+          STAGE_BUILD: ${{ steps.build.outcome }}
+          STAGE_ARTIFACTS: ${{ steps.artifacts.outcome }}
+          STAGE_UNIT: ${{ steps.unit.outcome }}
+          STAGE_INTEGRATION: ${{ steps.integration.outcome }}
+          STAGE_E2E: ${{ steps.e2e.outcome }}
+          STAGE_COVERAGE: ${{ steps.coverage.outcome }}
+          STAGE_E2E_BROWSER: ${{ steps.e2e_browser.outcome }}
+        run: node scripts/ci-summary.mjs >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publicar reportes (también si falla una prueba)
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: academic-evaluation-s08-${{ github.sha }}
+          if-no-files-found: warn
+          retention-days: 30
+          path: |
+            test-results/
+            coverage/
+            playwright-report/
+            reports/verification.json

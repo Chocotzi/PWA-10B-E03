@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
@@ -32,10 +32,31 @@ const required = [
   "src/lib/device/geolocation.ts",
   "src/lib/notifications/client.ts",
   "docs/capabilities.md",
-  "tests/capabilities.spec.ts"
+  "tests/capabilities.spec.ts",
+  // Semana 8: pirámide de pruebas e integración continua.
+  "docs/test-strategy.md",
+  ".github/workflows/academic-evaluation.yml",
+  "eslint.config.mjs",
+  "playwright.config.ts",
+  "tests/unit/inspections-domain.spec.ts",
+  "tests/unit/queue-idempotency.spec.ts",
+  "tests/integration/offline-persistence-and-sync.spec.ts",
+  "tests/e2e/critical-inspection-flow.spec.ts",
+  "tests/e2e/critical-inspection-flow.pw.ts",
+  "README.md"
 ];
 
-const missing = required.filter((file) => !existsSync(resolve(root, file)));
+// Semana 8: cada capa debe tener al menos un archivo de pruebas ejecutable.
+const layers = {
+  "tests/unit": /\.spec\.ts$/,
+  "tests/integration": /\.spec\.ts$/,
+  "tests/e2e": /\.(spec|pw)\.ts$/,
+};
+const emptyLayers = Object.entries(layers)
+  .filter(([dir, pattern]) => !existsSync(resolve(root, dir)) || !readdirSync(resolve(root, dir)).some((name) => pattern.test(name)))
+  .map(([dir]) => `${dir}/ (sin pruebas)`);
+
+const missing = [...required.filter((file) => !existsSync(resolve(root, file))), ...emptyLayers];
 const result = {
   schemaVersion: 1,
   checkedAt: new Date().toISOString(),

@@ -1,0 +1,97 @@
+Semana 8 | Probar la PWA completa y automatizar la verificación
+
+Actividad técnica: 8 puntos. Parcial 2. Trabajo en el equipo asignado; entrega individual en Classroom.
+
+De dónde partimos
+
+Retomen la PWA tal como quedó al terminar la semana 6 y el diagnóstico del parcial. En la semana 7 se evalúa; no se construye otra versión por una actividad nueva. Esta semana conviertan el flujo existente y sus fallos en pruebas repetibles.
+
+Qué debe quedar funcionando
+
+Detectar una regresión real antes de integrar cambios y demostrar, mediante CI, que la inspección funciona con desconexión y con permisos no disponibles.
+
+Qué deben hacer, paso a paso
+
+1. Hagan un diagnóstico inicial. Ejecuten la PWA y registren fallos que impidan probarla. Atiendan los bloqueos del flujo que se describe abajo; no declaren aprobado algo que no pudieron ejecutar.
+2. Definan la estrategia en docs/test-strategy.md. Relacionen cada riesgo con la capa de prueba elegida y expliquen por qué. Como mínimo cubran: captura inválida, persistencia/reconexión, duplicado de sincronización y permisos del dispositivo.
+3. Agreguen pruebas unitarias. Prueben una regla de validación y una regla de la cola o de idempotencia. Usen entradas válidas e inválidas y aserciones sobre resultados; probar que una función existe no basta.
+4. Agreguen pruebas de integración. Comprueben que guardar sin conexión persiste la inspección y que reintentar la sincronización de la misma operación no crea un duplicado. Controlen los datos y la respuesta remota con fixtures.
+5. Agreguen pruebas E2E. Desde la interfaz: creen una inspección, guárdenla sin conexión, recarguen sin perderla, reconecten y comprueben que queda una sola inspección sincronizada. Incluyan un caso en que se deniega o falta una capacidad de semana 6 y se puede completar la captura.
+6. Demuestren que las pruebas detectan un defecto. En una rama temporal introduzcan un cambio controlado, por ejemplo omitir la protección de duplicados. Ejecuten la prueba que debe fallar, registren la salida y restauren la solución. Conserven evidencia enlazada de fallo y de recuperación; no entreguen el defecto integrado.
+7. Configuren CI. El workflow debe instalar dependencias, ejecutar lint, comprobar tipos, compilar y ejecutar las capas de pruebas con sus reportes. Debe fallar si falla una etapa obligatoria. Publiquen cobertura y resultados como artefactos, también cuando una prueba falle. Documenten el comando de cada etapa y el arranque del servidor usado por E2E.
+
+Escenarios que deben comprobar
+
+El flujo mínimo es: crear → guardar offline → recargar → reconectar → sincronizar sin duplicar. Se agrega una variante con una capacidad de dispositivo denegada o ausente. Usen datos sintéticos aislados y limpien el estado entre casos. Un E2E no se sustituye por buscar texto en el código fuente.
+
+La cobertura se entrega para identificar huecos; no se exige un porcentaje arbitrario ni un número de tests para aprobar. Se evalúa que los riesgos solicitados tengan aserciones útiles y que el defecto controlado sea detectado.
+
+Archivos y entregables de esta semana
+
+- tests/unit/, tests/integration/ y tests/e2e/ con pruebas ejecutables.
+- docs/test-strategy.md: riesgos, capas, comandos, diagnóstico y evidencia del defecto controlado.
+- .github/workflows/academic-evaluation.yml con las etapas descritas; si ya existe un workflow equivalente, documenten su ruta y actualícenlo en lugar de duplicarlo.
+- Reportes de resultados y cobertura, y enlaces a las ejecuciones de fallo y recuperación.
+- README.md actualizado y sección personal de esta semana en evidence/individual.md.
+- Reportes reales de comprobación y enlace a CI de la versión final.
+
+Conserven estas rutas para facilitar la revisión. Si la estructura que ya utiliza su proyecto es equivalente, no dupliquen el código: documenten la correspondencia archivo por archivo y su uso real en README.
+
+Cómo se calificará
+
+La actividad vale 8 puntos, con la distribución AC-01 = 2, AC-02 = 3, AC-03 = 2 y AC-04 = 1. Los subpuntos siguientes explican esa distribución; no se convierten en puntos adicionales. Se suma el crédito demostrado por cada comprobación, sin exigir todo el bloque para dar crédito parcial. Un mismo defecto no genera descuentos duplicados; puede impedir demostrar comportamientos distintos y esto debe justificarse con evidencia.
+
+El color verde de Actions es retroalimentación, no una calificación automática. El docente fija el SHA, reproduce las comprobaciones y contrasta implementación, pruebas y reporte. Los casos de evaluación solo pueden variar datos o fallos dentro de lo declarado aquí. No se aplica un cero general solo por fallar una prueba o por faltar un documento: se califican los criterios que puedan verificarse. Si falta evidencia individual, se pide aclaración a la persona involucrada sin inventar una nota ni sancionar al resto del equipo. La regla de ramas vigente se revisa únicamente sobre los cambios de esta actividad; no se arrastran incumplimientos anteriores.
+
+No usen secretos reales ni datos personales reales. Si aparece una exposición, avisen al docente y atiendan su contención; no inventen una penalización numérica fuera de la rúbrica. Entregar un enlace inaccesible genera una incidencia de acceso, no prueba automáticamente que no exista trabajo.
+
+- AC-01 · Reproducibilidad (2 puntos): Instalación limpia (1) y compilación (1).
+- AC-02 · Estrategia implementada (3 puntos): Unitarias con las dos reglas solicitadas (1); integración de persistencia y duplicado (1); E2E del flujo y alternativa de dispositivo (1).
+- AC-03 · Calidad verificable (2 puntos): CI ejecuta las etapas obligatorias y conserva resultados/cobertura (1); un defecto controlado hace fallar una prueba y su corrección la hace pasar (1).
+- AC-04 · Ingeniería (1 puntos): Matriz riesgo–prueba y justificación de capas (0.5); diagnóstico, límites y evidencia trazable del fallo/corrección (0.5).
+- Total (8 puntos): 
+
+Trabajo en equipo y continuidad
+
+Continúen el mismo repositorio y la misma PWA de inspecciones de laboratorios. No creen otra aplicación ni descarguen un starter nuevo. Usen el equipo vigente autorizado por el docente, incluidas sus excepciones de tamaño; no agreguen integrantes para completar un número. Los datos de inspecciones, imágenes y ubicaciones usados para demostrar la aplicación deben ser sintéticos o de prueba.
+
+Antes de comenzar, ejecuten la versión anterior y anoten lo que funciona y lo que falla. Corrijan las dependencias que necesiten para esta actividad sin borrar el historial. Una calificación anterior no demuestra por sí sola que una función ya esté dominada. Cada semana se evalúa su hito: no se vuelve a cobrar una entrega anterior, pero las funciones que esta semana necesita deben operar.
+
+Verificación y evidencia
+
+Declaren en README la versión de Node, instalación, arranque y comandos de comprobación. Con npm: npm ci, npm run build y make verify; si usan otros comandos, escriban los equivalentes exactos y qué ejecuta cada uno. make verify debe ejecutar comprobaciones reales y terminar con error si alguna falla. Las pruebas no deben depender de cuentas personales, datos reales ni permisos físicos del equipo del evaluador: simulen los fallos de las APIs cuando corresponda.
+
+Conserven la salida real de las comprobaciones y el enlace a CI del SHA entregado. En cada escenario indiquen: preparación, acción o comando, resultado esperado, resultado observado y enlace al test o reporte. Pueden guardar los reportes como artefactos de Actions; no es obligatorio subir archivos generados al repositorio. Una captura puede complementar la evidencia, pero no sustituye una prueba ejecutable cuando esta es posible. Un archivo vacío, una función sin consumidor o un test que solo comprueba nombres no demuestra el comportamiento solicitado.
+
+Evidencia personal e IA
+
+En evidence/individual.md, agreguen una sección de esta semana por integrante con: nombre, contribución concreta y enlace, decisión y motivo, prueba ejecutada y resultado, qué demuestra y qué no demuestra, una limitación y uso de IA. No borren las semanas anteriores. Cada persona debe poder explicar su parte y una prueba del flujo común. No se exige un número de commits ni que cada integrante construya una PWA distinta.
+
+Pueden usar IA en la actividad si declaran herramienta, propósito, partes influidas y cómo validaron la respuesta. No se permite IA durante el quiz.
+
+Cómo entregar en Classroom
+
+Cada integrante entrega por separado en su propia cuenta. Todos registran el mismo repositorio y SHA final del equipo, e identifican su evidencia personal. El docente debe tener acceso al repositorio privado.
+
+1. Trabajen los cambios en ramas e intégrenlos mediante el flujo de revisión del equipo. No hagan cambios directos no iniciales a main/master: la regla vigente del curso establece 0/8 por ese incumplimiento, revisado únicamente sobre los cambios de esta actividad. El commit inicial, los merges locales y el squash mediante PR están permitidos. No se exige un PR adicional solo para entregar.
+2. Después del último cambio, hagan push y esperen la ejecución de CI de esa versión. Copien el SHA con git rev-parse HEAD desde la versión final integrada; comprueben que coincide con el de Actions. No hagan otro commit solo para escribir ese SHA dentro de un archivo del propio commit.
+3. Entreguen los enlaces a los documentos de esta semana y al reporte o artefacto de CI, además de su sección personal. No se requiere tag ni etiqueta Git.
+4. Si una ejecución falla, entreguen el enlace y describan el error antes del plazo. Esto conserva la evidencia de entrega y no equivale a aprobar el criterio que falló.
+
+Formato para copiar y completar:
+
+Semana / actividad:
+Grupo y equipo:
+Mi nombre:
+Repositorio:
+SHA final común del equipo:
+Actions de ese SHA:
+Documentos y reporte de esta semana:
+Mi sección de evidencia individual:
+Mi contribución y enlace:
+Acceso del docente: confirmado / invitación enviada / incidencia descrita
+Incidencias o limitaciones:
+
+Plazo y quiz
+
+La fecha y hora válidas serán las indicadas por el docente en Classroom, en horario de Ciudad de México. Esta actividad se trabaja y entrega dentro de una sola semana, con un máximo de 7 días; no se acumula hasta el cierre del parcial. Además hay un quiz individual presencial en papel de 3 preguntas, 1 punto por pregunta: 3 puntos separados de los 8 de esta actividad. No se permite IA, teléfono ni computadora durante el quiz.

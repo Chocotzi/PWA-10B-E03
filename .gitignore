@@ -55,6 +55,12 @@ $RECYCLE.BIN/
 
 # --- Despliegue ---
 .vercel
+CLAUDE.md
+PLAN.md
 
 # --- Resultados de pruebas generados por Vitest (JUnit) ---
 test-results/
+
+# --- Semana 8: reportes de Playwright (se publican como artefactos de CI) ---
+playwright-report/
+blob-report/
