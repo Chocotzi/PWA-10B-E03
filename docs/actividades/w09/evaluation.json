@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 2,
+  "assignmentId": "w09-security-privacy",
+  "schedule": {
+    "week": 9,
+    "partial": 2,
+    "maxDurationDays": 7
+  },
+  "grading": {
+    "partialContributionPoints": 8,
+    "bucket": "continuous_activity"
+  },
+  "difficulty": {
+    "level": 8,
+    "justification": "Integra el mínimo oficial con restricciones de ingeniería, evidencia ejecutable, trade-offs y recuperación dentro de una semana."
+  },
+  "traceability": {
+    "officialOutcome": "Capacidad derivada: implementar esquemas de seguridad para privacidad y confidencialidad cumpliendo leyes y regulaciones aplicables.",
+    "institutionalMinimum": "Capacidad derivada: implementar esquemas de seguridad para privacidad y confidencialidad cumpliendo leyes y regulaciones aplicables.",
+    "engineeringTarget": "Modelar amenazas y aplicar controles de mínimo privilegio, secretos, transporte, almacenamiento, CSP y validación para un sujeto obligado mexicano.",
+    "upliftBasis": "La actividad agrega criterios de calidad, automatización, seguridad, observabilidad y evidencia individual sin alterar el alcance oficial."
+  },
+  "competencies": {
+    "primary": "C13",
+    "cumulative": [
+      "C06",
+      "C07"
+    ]
+  },
+  "reproducibility": {
+    "verifyCommand": "make verify",
+    "runCommand": "npm run dev"
+  },
+  "ci": {
+    "required": true,
+    "platform": "github_actions",
+    "mode": "hybrid",
+    "workflowPath": ".github/workflows/week-09-w09-security-privacy.yml",
+    "setupCommands": [
+      "npm ci --ignore-scripts --no-audit --no-fund"
+    ],
+    "artifactPaths": [
+      "evaluation-result.json",
+      "coverage/",
+      "test-results/"
+    ]
+  },
+  "automationPolicy": {
+    "automaticOrSemiAutomaticTargetPercent": 90,
+    "maxManualPointsPercent": 10,
+    "manualReviewBudgetMinutes": 5,
+    "manualException": {
+      "instructorApproved": false,
+      "justification": "Sin excepción aprobada; revisión humana solo por bandera."
+    }
+  },
+  "qualityGates": [
+    "Instalación limpia y build reproducible.",
+    "Pruebas deterministas con datos sintéticos.",
+    "Reporte de resultados y artefactos de CI.",
+    "Sin secretos ni PII."
+  ],
+  "checks": [
+    {
+      "id": "AC-01",
+      "type": "automatic",
+      "points": 2,
+      "evidence": "Instalación limpia y build completan.",
+      "command": "test -f package.json && (test -f package-lock.json || test -f pnpm-lock.yaml || test -f yarn.lock) && npm run build --if-present"
+    },
+    {
+      "id": "AC-02",
+      "type": "automatic",
+      "points": 3,
+      "evidence": "Los artefactos declarados para la actividad existen.",
+      "command": "test -e 'docs/threat-model.md' && test -e 'docs/privacy-data-inventory.md' && test -e 'src/lib/security/' && test -e 'tests/security.spec.ts' && test -e 'public/robots.txt'"
+    },
+    {
+      "id": "AC-03",
+      "type": "automatic",
+      "points": 2,
+      "evidence": "Existe una suite ejecutable de pruebas.",
+      "command": "test -d tests && find tests -type f -print -quit | grep -q . && npm run test --if-present -- --run"
+    },
+    {
+      "id": "AC-04",
+      "type": "semi_automatic",
+      "points": 1,
+      "evidence": "El reporte y la evidencia individual están presentes para inspección.",
+      "command": "test -f README.md && test -f evidence/individual.md"
+    }
+  ],
+  "individualEvidence": {
+    "required": true,
+    "signals": [
+      "evidence/individual.md",
+      "commit hash evaluado",
+      "decisión técnica explicada",
+      "prueba ejecutada y limitación"
+    ]
+  },
+  "antiGaming": {
+    "risks": [
+      "crear solo archivos vacíos",
+      "ajustar la solución a nombres de archivos",
+      "copiar evidencia sin comprenderla"
+    ],
+    "controls": [
+      "pruebas de comportamiento",
+      "casos negativos privados",
+      "commit fijado",
+      "defensa individual"
+    ]
+  },
+  "result": {
+    "totalPoints": 8,
+    "automaticPoints": 7,
+    "semiAutomaticPoints": 1,
+    "manualPoints": 0
+  }
+}

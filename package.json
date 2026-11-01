@@ -14,6 +14,7 @@
     "test": "node tests/starter.spec.mjs && vitest run --coverage",
     "test:unit": "vitest run tests/unit --outputFile.junit=test-results/unit.xml",
     "test:integration": "vitest run tests/integration --outputFile.junit=test-results/integration.xml",
+    "test:security": "vitest run tests/security.spec.ts tests/integration/api-security.spec.ts --outputFile.junit=test-results/security.xml",
     "test:e2e": "vitest run tests/e2e --outputFile.junit=test-results/e2e.xml",
     "test:e2e:browser": "playwright test",
     "measure:rendering": "node scripts/measure-rendering.mjs",

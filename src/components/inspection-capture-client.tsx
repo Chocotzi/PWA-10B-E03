@@ -11,6 +11,7 @@ import {
   type ChangeNotice,
   type NotificationEnvironment,
 } from "../lib/notifications/client";
+import { MAX_FINDINGS, MAX_INSPECTOR_LENGTH, MAX_LOCATION_LENGTH, MAX_SUMMARY_LENGTH } from "../lib/security/limits";
 import { openMutationStorage, type PendingMutation } from "../lib/storage/schema";
 import { createSyncQueue, type SyncTransport } from "../lib/sync/queue";
 import { EvidenceCapture, type DeviceAdapters } from "./evidence-capture";
@@ -116,11 +117,11 @@ export function InspectionCaptureClient({ devices, notifications }: InspectionCa
     </div>
     <p className="sync-summary" role="status">{online ? "Con conexión" : "Sin conexión"} · {pending.length} pendientes · {conflicts.length} conflictos</p>
     <form className="capture-form" onSubmit={save}>
-      <label>Laboratorio sintético<input name="location" required defaultValue="Laboratorio de Redes" /></label>
-      <label>Responsable sintético<input name="inspector" required defaultValue="Técnica de prueba" /></label>
+      <label>Laboratorio sintético<input name="location" required maxLength={MAX_LOCATION_LENGTH} defaultValue="Laboratorio de Redes" /></label>
+      <label>Responsable sintético<input name="inspector" required maxLength={MAX_INSPECTOR_LENGTH} defaultValue="Técnica de prueba" /></label>
       <label>Estado<select name="status" defaultValue="ok"><option value="ok">Sin incidencias</option><option value="attention">Requiere atención</option></select></label>
-      <label>Hallazgos<input name="findings" type="number" min="0" defaultValue="0" required /></label>
-      <label className="form-wide">Resumen sintético<textarea name="summary" required defaultValue="Registro sintético para comprobar la captura sin conexión." /></label>
+      <label>Hallazgos<input name="findings" type="number" min="0" max={MAX_FINDINGS} step="1" defaultValue="0" required /></label>
+      <label className="form-wide">Resumen sintético<textarea name="summary" required maxLength={MAX_SUMMARY_LENGTH} defaultValue="Registro sintético para comprobar la captura sin conexión." /></label>
       <EvidenceCapture key={evidenceKey} value={evidence} onChange={setEvidence} devices={devices} />
       <button className="button" type="submit">Guardar sin conexión</button>
       <button className="secondary-button" type="button" onClick={() => void flush()} disabled={!online}>Reintentar sincronización</button>

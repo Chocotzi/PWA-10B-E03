@@ -1,3 +1,21 @@
+# Evidencia individual · semana 9
+
+Conserven las secciones de semanas anteriores. Cada integrante completa su bloque con resultados reales.
+
+## Nombre: Benkis Carbajal Hernández · matrícula 3523110227
+
+- Grupo y equipo: 10B · Equipo 03
+- Commit SHA: _pendiente: se registra en el commit siguiente, que solo anota el SHA de este contenido completo de la entrega._
+- Mi contribución de esta semana y enlace: Tarea 1, base y API endurecida. Creé [`src/lib/security/`](../src/lib/security/) (límites, validación estricta, utilidades HTTP y mapa acotado), endurecí [`POST /api/inspecciones`](../src/app/api/inspecciones/route.ts) y las lecturas, añadí `maxLength` al formulario de captura, redacté el borrador de [`docs/threat-model.md`](../docs/threat-model.md) y escribí las pruebas [`tests/security.spec.ts`](../tests/security.spec.ts) y [`tests/integration/api-security.spec.ts`](../tests/integration/api-security.spec.ts). Integré el kit de la semana (workflow, `public-tests/check.sh`, enunciado en `docs/actividades/w09/`) y los cinco artefactos en `scripts/verify.mjs`.
+- Decisión técnica y motivo: Validación manual y estricta, sin dependencias nuevas, con rechazo de claves desconocidas (incluidas `__proto__` y `constructor`) y errores por campo que no devuelven el valor recibido. Evité una librería de esquemas para no desincronizar `package-lock.json` (causó el fallo de `npm ci` de la Semana 8). El cuerpo se lee con tope real de bytes (413 aunque `Content-Length` mienta) y las escrituras exigen `application/json` y mismo origen. Las respuestas de error son genéricas y los mapas de revisiones y confirmaciones tienen tope de 5000 entradas.
+- Prueba/comando que ejecuté: `npx tsc --noEmit` sobre `src/` y sobre los dos archivos de pruebas (sin errores), y un arnés propio de Node que transpila el TypeScript y sustituye `vitest` para ejecutar `tests/security.spec.ts`, `tests/integration/api-security.spec.ts` y `tests/write-endpoint.spec.ts`. **No pude ejecutar `npx vitest run` ni `npm test` en mi entorno** (no hay acceso al registro de paquetes y los binarios nativos instalados no corresponden a este sistema).
+- Resultado observado y enlace al reporte: El arnés dio 32 pruebas aprobadas y 0 fallidas (30 nuevas y 2 de `write-endpoint.spec.ts`, que conservan la idempotencia 201/200 y el conflicto 409 de la Semana 5). Al desactivar a propósito el rechazo de claves extra y el tope de bytes, 5 pruebas fallaron, lo que indica que detectan esas regresiones. El resultado oficial queda pendiente del run de GitHub Actions con `npx vitest run tests/security.spec.ts tests/integration` y `npm test`; lo anotaré aquí cuando exista.
+- Qué demuestra y qué no demuestra: Demuestra que la API rechaza entradas malformadas u hostiles (tipos, longitudes, claves extra, foto no JPEG, coordenadas fuera de rango, cuerpos enormes, tipo de contenido y origen incorrectos) sin tocar el estado ni filtrar valores. No demuestra que la foto sea un JPEG real (solo se valida prefijo, base64 y tamaño), ni que el servidor de Next.js no haya almacenado ya el cuerpo antes del tope, ni protege contra abuso por frecuencia o falta de autenticación.
+- Limitación o riesgo: El arnés no es Vitest; puede haber diferencias menores de comportamiento hasta que corra en CI. El endpoint sigue siendo de demostración en memoria y expulsar entradas antiguas de los mapas podría permitir que un reenvío muy tardío se trate como nuevo. Mientras Carlos no agregue `public/robots.txt` y Cleber no agregue `docs/privacy-data-inventory.md`, `npm run verify` y el workflow del kit fallarán por esos dos archivos.
+- IA: herramienta, propósito, partes influidas y validación propia; o «no utilicé IA»: Utilicé Claude (Anthropic) para proponer el diseño de la validación, redactar el código de `src/lib/security/`, las pruebas y el borrador del modelo de amenazas. Revisé la lógica, comprobé el tipado con `tsc`, ejecuté las pruebas en el arnés descrito y probé que fallan al romper los controles; la ejecución oficial en Vitest y CI sigue pendiente.
+
+---
+
 # Evidencia individual · semana 8
 
 Conserven las secciones de semanas anteriores. Copien este bloque por cada integrante vigente del equipo y complétenlo con resultados reales.

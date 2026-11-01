@@ -43,6 +43,12 @@ const required = [
   "tests/integration/offline-persistence-and-sync.spec.ts",
   "tests/e2e/critical-inspection-flow.spec.ts",
   "tests/e2e/critical-inspection-flow.pw.ts",
+  // Semana 9: modelo de amenazas, privacidad y controles de seguridad.
+  "docs/threat-model.md",
+  "docs/privacy-data-inventory.md",
+  "src/lib/security/index.ts",
+  "tests/security.spec.ts",
+  "public/robots.txt",
   "README.md"
 ];
 
