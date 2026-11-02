@@ -1,13 +1,7 @@
-import { getInspectionById, parseSimulate } from "@/lib/inspections-repository";
+import { getInspectionById, parseSimulate } from "../../../../lib/inspections-repository";
+import { jsonResponse as json } from "../../../../lib/security";
 
 export const dynamic = "force-dynamic";
-
-function json(data: unknown, status = 200) {
-  return Response.json(data, {
-    status,
-    headers: { "Cache-Control": "no-store" },
-  });
-}
 
 export async function GET(
   request: Request,
@@ -21,7 +15,8 @@ export async function GET(
     return inspection
       ? json({ data: inspection })
       : json({ error: "Inspección no encontrada" }, 404);
-  } catch (error) {
-    return json({ error: error instanceof Error ? error.message : "Error del origen de datos" }, 500);
+  } catch {
+    // Sin `error.message`: los detalles internos no deben llegar al cliente (T-03).
+    return json({ error: "Error del origen de datos" }, 500);
   }
 }

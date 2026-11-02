@@ -1,12 +1,14 @@
 # Semana 8 — Pirámide de pruebas e integración continua.
+# Semana 9 — Controles de navegador, secretos y dependencias (Tarea 2, Carlos; T-05 a T-11).
 # Workflow de la actividad (retroalimentación; la calificación final usa el SHA fijado y checks privados).
 #
-# Orden: npm ci → lint → tipos → build → artefactos → unitarias → integración → E2E (jsdom)
-#        → suite completa con cobertura → E2E en Chromium contra `next start`.
+# Orden: npm ci --ignore-scripts → auditoría de dependencias → secretos del repositorio → lint → tipos
+#        → build → secretos del bundle → artefactos → unitarias → integración → E2E (jsdom)
+#        → suite completa con cobertura → E2E en Chromium contra `next start` (incluye encabezados y CSP).
 # Cada etapa corre si su requisito terminó bien, aunque otra etapa haya fallado, para que la ejecución
 # muestre todos los fallos a la vez; el job termina en rojo si falla cualquier etapa obligatoria.
 # Los reportes (JUnit, cobertura, Playwright) se publican siempre, también cuando una prueba falla.
-name: Academic Evaluation - Semana 8
+name: Academic Evaluation - Semanas 8 y 9
 
 on:
   push:
@@ -40,9 +42,26 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
 
-      - name: AC-01 · Instalación limpia — npm ci
+      - name: AC-01 · Instalación limpia — npm ci --ignore-scripts
         id: install
-        run: npm ci --no-audit --no-fund
+        # T-09: ningún paquete ejecuta scripts de instalación (preinstall/postinstall); el lockfile fija
+        # versiones e integridad. La auditoría corre en su propia etapa, por eso --no-audit aquí.
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: T-09 · Auditoría de dependencias de producción — npm audit --omit=dev --audit-level=high
+        id: audit
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        # Falla con un aviso high o critical en dependencias de producción; moderate y low se muestran
+        # sin detener el pipeline. Qué hacer con un hallazgo: README, Semana 9, «Dependencias».
+        run: |
+          mkdir -p reports
+          npm audit --omit=dev --json > reports/npm-audit.json || true
+          npm run audit:deps
+
+      - name: T-08 · Secretos en el repositorio — npm run scan:secrets
+        id: secrets
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run scan:secrets
 
       - name: AC-03 · Lint — npm run lint
         id: lint
@@ -58,6 +77,11 @@ jobs:
         id: build
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm run build
+
+      - name: T-08 · Secretos en el bundle — npm run scan:secrets -- --bundle
+        id: secrets_bundle
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: npm run scan:secrets -- --bundle
 
       - name: AC-02 · Artefactos requeridos — npm run verify
         id: artifacts
@@ -89,7 +113,7 @@ jobs:
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: npx playwright install --with-deps chromium
 
-      - name: AC-02 · E2E en Chromium con next start — npm run test:e2e:browser
+      - name: AC-02 · E2E en Chromium con next start (flujo crítico, encabezados y CSP) — npm run test:e2e:browser
         id: e2e_browser
         if: ${{ !cancelled() && steps.browsers.outcome == 'success' }}
         run: npm run test:e2e:browser
@@ -98,6 +122,9 @@ jobs:
         if: ${{ always() }}
         env:
           STAGE_INSTALL: ${{ steps.install.outcome }}
+          STAGE_AUDIT: ${{ steps.audit.outcome }}
+          STAGE_SECRETS: ${{ steps.secrets.outcome }}
+          STAGE_SECRETS_BUNDLE: ${{ steps.secrets_bundle.outcome }}
           STAGE_LINT: ${{ steps.lint.outcome }}
           STAGE_TYPECHECK: ${{ steps.typecheck.outcome }}
           STAGE_BUILD: ${{ steps.build.outcome }}
@@ -121,3 +148,6 @@ jobs:
             coverage/
             playwright-report/
             reports/verification.json
+            reports/secrets-scan.json
+            reports/secrets-scan-bundle.json
+            reports/npm-audit.json

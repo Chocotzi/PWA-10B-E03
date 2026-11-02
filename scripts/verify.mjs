@@ -43,7 +43,23 @@ const required = [
   "tests/integration/offline-persistence-and-sync.spec.ts",
   "tests/e2e/critical-inspection-flow.spec.ts",
   "tests/e2e/critical-inspection-flow.pw.ts",
-  "README.md"
+  // Semana 9: modelo de amenazas, privacidad y controles de seguridad.
+  "docs/threat-model.md",
+  "docs/privacy-data-inventory.md",
+  "src/lib/security/index.ts",
+  "src/lib/security/privacy.ts",
+  "src/components/privacy-panel.tsx",
+  "tests/integration/api-security.spec.ts",
+  "tests/integration/privacy.spec.ts",
+  "tests/security.spec.ts",
+  "public/robots.txt",
+  "README.md",
+  // Semana 9 · Tarea 2 (Carlos): encabezados y CSP, secretos y dependencias.
+  "src/lib/security/headers.ts",
+  "src/lib/security/secrets.ts",
+  "scripts/scan-secrets.mjs",
+  ".github/dependabot.yml",
+  "tests/e2e/security-headers.pw.ts"
 ];
 
 // Semana 8: cada capa debe tener al menos un archivo de pruebas ejecutable.

@@ -1,3 +1,102 @@
+# Evidencia individual · semana 9
+
+Conserven las secciones de semanas anteriores. Cada integrante completa su bloque con resultados reales.
+
+## Nombre: Benkis Carbajal Hernández · matrícula 3523110227
+
+- Grupo y equipo: 10B · Equipo 03
+- Commit SHA: Tarea 1 en `0c67adcdce66ea8bf60b775241676300906dff0a` (rama `dev-benkis`, integrado con la Tarea 2 en el merge `f87ceb3`). La Tarea 3 va en el commit siguiente; su SHA y el SHA final común (último run verde de `push` con las tres tareas) se entregan en Classroom, porque un commit no puede contener su propio SHA.
+- Mi contribución de esta semana y enlace: Tarea 1, base y API endurecida. Creé [`src/lib/security/`](../src/lib/security/) (límites, validación estricta, utilidades HTTP y mapa acotado), endurecí [`POST /api/inspecciones`](../src/app/api/inspecciones/route.ts) y las lecturas, añadí `maxLength` al formulario de captura, redacté el borrador de [`docs/threat-model.md`](../docs/threat-model.md) y escribí las pruebas [`tests/security.spec.ts`](../tests/security.spec.ts) y [`tests/integration/api-security.spec.ts`](../tests/integration/api-security.spec.ts). Integré el kit de la semana (workflow, `public-tests/check.sh`, enunciado en `docs/actividades/w09/`) y los cinco artefactos en `scripts/verify.mjs`.
+- Decisión técnica y motivo: Validación manual y estricta, sin dependencias nuevas, con rechazo de claves desconocidas (incluidas `__proto__` y `constructor`) y errores por campo que no devuelven el valor recibido. Evité una librería de esquemas para no desincronizar `package-lock.json` (causó el fallo de `npm ci` de la Semana 8). El cuerpo se lee con tope real de bytes (413 aunque `Content-Length` mienta) y las escrituras exigen `application/json` y mismo origen. Las respuestas de error son genéricas y los mapas de revisiones y confirmaciones tienen tope de 5000 entradas.
+- Prueba/comando que ejecuté: `npx tsc --noEmit` sobre `src/` y sobre los dos archivos de pruebas (sin errores), y un arnés propio de Node que transpila el TypeScript y sustituye `vitest` para ejecutar `tests/security.spec.ts`, `tests/integration/api-security.spec.ts` y `tests/write-endpoint.spec.ts`. **No pude ejecutar `npx vitest run` ni `npm test` en mi entorno** (no hay acceso al registro de paquetes y los binarios nativos instalados no corresponden a este sistema).
+- Resultado observado y enlace al reporte: El arnés dio 32 pruebas aprobadas y 0 fallidas (30 nuevas y 2 de `write-endpoint.spec.ts`, que conservan la idempotencia 201/200 y el conflicto 409 de la Semana 5). Al desactivar a propósito el rechazo de claves extra y el tope de bytes, 5 pruebas fallaron, lo que indica que detectan esas regresiones. El resultado oficial queda pendiente del run de GitHub Actions con `npx vitest run tests/security.spec.ts tests/integration` y `npm test`; lo anotaré aquí cuando exista.
+- Qué demuestra y qué no demuestra: Demuestra que la API rechaza entradas malformadas u hostiles (tipos, longitudes, claves extra, foto no JPEG, coordenadas fuera de rango, cuerpos enormes, tipo de contenido y origen incorrectos) sin tocar el estado ni filtrar valores. No demuestra que la foto sea un JPEG real (solo se valida prefijo, base64 y tamaño), ni que el servidor de Next.js no haya almacenado ya el cuerpo antes del tope, ni protege contra abuso por frecuencia o falta de autenticación.
+- Limitación o riesgo: El arnés no es Vitest; puede haber diferencias menores de comportamiento hasta que corra en CI. El endpoint sigue siendo de demostración en memoria y expulsar entradas antiguas de los mapas podría permitir que un reenvío muy tardío se trate como nuevo.
+- Tarea 3 (privacidad y cierre), realizada por mí porque Cleber no respondió: creé [`src/lib/security/privacy.ts`](../src/lib/security/privacy.ts) (inventario tipado como fuente única, `redactForLog` y `purgeLocalData`), el panel [`src/components/privacy-panel.tsx`](../src/components/privacy-panel.tsx) con aviso corto y botón «Borrar datos locales» con confirmación y `aria-live`, [`docs/privacy-data-inventory.md`](../docs/privacy-data-inventory.md) con el marco legal verificado en la Cámara de Diputados y el DOF (el estatal de Puebla solo en prensa, marcado para confirmar), la versión final de [`docs/threat-model.md`](../docs/threat-model.md), la sección «Semana 9» del README, el bloque 3 de `tests/security.spec.ts` y [`tests/integration/privacy.spec.ts`](../tests/integration/privacy.spec.ts). Decisión: el inventario vive en código y una prueba lo compara con las claves que admite la validación, así que agregar un campo sin documentarlo hace fallar la suite. Resultado en mi arnés: 33/33 pruebas de `tests/security.spec.ts` y `tests/integration/privacy.spec.ts` aprobadas, incluida la pantalla de captura completa (guardar sin red → borrar → IndexedDB vacía); los dos flujos principales de `tests/e2e/critical-inspection-flow.spec.ts` siguieron pasando con el panel nuevo. Integré la Tarea 3 sobre la rama con el merge de Carlos (PR #4): resolví los conflictos de `README.md`, `docs/threat-model.md` y `tests/security.spec.ts` conservando las tres partes; con todo junto, `npm run verify` da PASS y el escáner de credenciales de Carlos da 0 hallazgos con mis archivos incluidos. Pendiente: confirmar con Vitest y CI. Limitación: IndexedDB no está cifrada y el borrado no alcanza lo ya sincronizado en el servidor.
+- IA: herramienta, propósito, partes influidas y validación propia; o «no utilicé IA»: Utilicé Claude (Anthropic) para proponer el diseño de la validación y de la privacidad, redactar el código de `src/lib/security/` y del panel de privacidad, las pruebas, el inventario, el modelo de amenazas y la sección del README, y para buscar las leyes vigentes en fuentes oficiales. Revisé la lógica, comprobé el tipado con `tsc`, ejecuté las pruebas en el arnés descrito y probé que fallan al romper los controles; la ejecución oficial en Vitest y CI sigue pendiente.
+
+## Nombre: Carlos Andrés Arriaga Márquez · matrícula 3523110609
+
+- Grupo y equipo: 10B · Equipo 03 · Tarea 2 de la Semana 9: navegador, secretos y dependencias (T-05 a T-11).
+- Commit SHA: el SHA final común se entrega en Classroom (regla del curso: no se hace un commit solo para
+  escribirlo aquí). Commits de esta tarea en `dev-carlos`, sobre `dev-benkis` (`0c67adc`):
+  `c45bfb8` (dependencias), `c29fcb7` (encabezados y CSP), `01364b3` (escáner de secretos), `7ae68c8` (pruebas),
+  `5ac4595` (CI y Dependabot) y el commit de documentación que contiene esta sección.
+- Mi contribución de esta semana y enlace:
+  - Encabezados y CSP en una sola fuente, [`src/lib/security/headers.ts`](../src/lib/security/headers.ts),
+    publicada por [`next.config.mjs`](../next.config.mjs) con `headers()`; HSTS solo en producción detrás de
+    HTTPS; `/sw.js` con CSP propia y `no-cache`; `/api/**` con `no-store`; sin `X-Powered-By`;
+    [`public/robots.txt`](../public/robots.txt).
+  - Escáner de secretos: [`src/lib/security/secrets.ts`](../src/lib/security/secrets.ts) (`scanForSecrets`) y
+    [`scripts/scan-secrets.mjs`](../scripts/scan-secrets.mjs) para el repositorio y para el bundle.
+  - Dependencias: etapa `npm audit --omit=dev --audit-level=high`, `npm ci --ignore-scripts` y
+    [`.github/dependabot.yml`](../.github/dependabot.yml). La etapa encontró `next` 16.3.4 con avisos críticos y
+    lo actualicé a 16.4.3.
+  - Pruebas: bloque 2 de [`tests/security.spec.ts`](../tests/security.spec.ts) (50 pruebas) y
+    [`tests/e2e/security-headers.pw.ts`](../tests/e2e/security-headers.pw.ts) (3 casos en Chromium).
+  - Filas T-05 a T-11 y sección 8 de [`docs/threat-model.md`](../docs/threat-model.md), sección «Semana 9» del
+    [README](../README.md) y etapas nuevas del [workflow](../.github/workflows/academic-evaluation.yml).
+- Decisión técnica y motivo:
+  - `'unsafe-inline'` en `script-src` y no un nonce por petición. Lo probé con `next build && next start` en una
+    rama local con `proxy.ts`: con nonce, `/inspecciones` y `/offline` (estáticas) perdieron 11 y 10 scripts y la
+    captura no se hidrató. Forzando render dinámico las 7 rutas funcionaron, pero sin red el service worker sirvió
+    tres recargas con el mismo nonce, que así ya no protege. Compensé con una CSP sin `'unsafe-eval'` en
+    producción, sin dominios externos y con `connect-src` e `img-src` propios.
+  - Una sola fuente para la política: Node 20 no ejecuta TypeScript, así que `next.config.mjs` y el escáner
+    quitan los tipos con el compilador que ya instala el proyecto, en lugar de copiar la política en JavaScript.
+  - HSTS solo si el proxy indica HTTPS (`X-Forwarded-Proto`), porque por HTTP el navegador lo ignora.
+  - Umbral `high` en producción para `npm audit`. Ante un hallazgo se actualiza en una rama a la versión corregida
+    y se corre el pipeline completo.
+- Prueba/comando que ejecuté: en un clon limpio con Node 20.20.2 y npm 10.8.2, las mismas etapas del workflow:
+  `npm ci --ignore-scripts`, `npm run audit:deps`, `npm run scan:secrets`, `npm run lint`, `npm run typecheck`,
+  `npm run build`, `npm run scan:secrets -- --bundle`, `npm run verify`, las tres capas, `npm test` y
+  `npm run test:e2e:browser`. Además, `npx playwright test --repeat-each=3` con `CI=1` y diez defectos
+  introducidos a propósito, uno por uno.
+- Resultado observado y enlace al reporte:
+  - `npm test`: 274/274 (50 nuevas en `tests/security.spec.ts`); `headers.ts` y `secrets.ts` con 100 % de líneas.
+  - E2E en Chromium: 5/5 (3 nuevos) y 15/15 al repetirlo tres veces; cero violaciones de CSP y de
+    Permissions-Policy durante la captura y el flujo sin red.
+  - Escaneo de secretos: 0 hallazgos en 116 archivos del repositorio y en 39 del bundle
+    (`reports/secrets-scan.json`, `reports/secrets-scan-bundle.json`).
+  - `npm audit --omit=dev`: antes 3 avisos (1 crítico, 2 altos); después de actualizar, 0
+    (`reports/npm-audit.json`). Lint sin errores (los 34 avisos de la línea base no cambiaron), tipos y build sin
+    errores.
+  - Los diez defectos controlados (`'unsafe-eval'`, cámara abierta a todos, HSTS sin condición, worker que
+    intercepta `/api`, abre URL externas o guarda `no-store`, regla JWT quitada, filtro de asignaciones quitado,
+    `/sw.js` sin su CSP y `/api` sin `no-store`) hicieron fallar al menos una prueba cada uno. Con
+    `microphone=(self)` falló el E2E.
+  - `npm run verify` falla solo porque falta `docs/privacy-data-inventory.md`, que entrega Cleber en la Tarea 3.
+  - Los reportes de CI quedan en el artefacto de cada ejecución del workflow.
+- Qué demuestra y qué no demuestra:
+  - Demuestra que el navegador recibe y aplica la política: un script inyectado no puede usar eval ni cargar o
+    enviar nada a otro origen, la aplicación no se deja encuadrar y el micrófono queda bloqueado aunque se conceda.
+    También que la captura completa y el flujo sin red funcionan con la CSP activa, que el repositorio y el
+    bundle no contienen credenciales con formato conocido y que las dependencias de producción no tienen avisos
+    altos ni críticos hoy.
+  - No demuestra que un script en línea inyectado no corra: eso es lo que acepta `'unsafe-inline'`. Tampoco el
+    comportamiento en Safari o Firefox, un HTTPS real detrás de un proxy (se simula con `X-Forwarded-Proto`), ni
+    secretos sin formato reconocible o que solo queden en el historial de git.
+- Limitación o riesgo:
+  - El resultado de `npm audit` cambia con el tiempo aunque el commit no cambie, porque consulta avisos en línea.
+  - Node 20, el de `.nvmrc`, ya no recibe parches de seguridad desde abril de 2026; propongo al equipo pasar a 22
+    o 24.
+  - La búsqueda por palabras de `public-tests/check.sh` falla con el propio texto del curso, así que el control
+    real de secretos es el escáner por formato.
+- IA: herramienta, propósito, partes influidas y validación propia:
+  - Herramienta y propósito: usé Claude (Anthropic), en una sesión conectada a mi repositorio local, para revisar
+    el estado de las ramas, diseñar la política y el escáner, correr el experimento del nonce, actualizar
+    dependencias y generar código, pruebas y documentación.
+  - Partes influidas: los archivos listados en «Mi contribución» y esta sección.
+  - Validación: los resultados de arriba salieron de esa sesión, en un clon limpio con Node 20.
+  - Validación propia en mi equipo (Windows, Node v24.14.0, npm 11.9.0), ya con `next` 16.4.3 instalado:
+    `npm ci` instaló 500 paquetes; `npm run build` terminó sin errores; `npm run lint`, 0 errores y los 34 avisos
+    de la línea base; `npm run typecheck` sin errores; `npm run scan:secrets`, PASS con 0 hallazgos en 117
+    archivos; `npm test`, 274/274 en 19 archivos; `npm run test:e2e:browser`, 5/5 en Chromium. `npm run verify`
+    falla solo porque falta `docs/privacy-data-inventory.md` (Tarea 3). Subí la rama con
+    `git push origin dev-carlos` (`f00c76b..e267f3b`).
+
+---
+
 # Evidencia individual · semana 8
 
 Conserven las secciones de semanas anteriores. Copien este bloque por cada integrante vigente del equipo y complétenlo con resultados reales.
