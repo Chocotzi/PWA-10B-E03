@@ -14,7 +14,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Instalar dependencias
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Verificar estructura
@@ -27,7 +27,7 @@ jobs:
         run: bash public-tests/check.sh
       - name: Guardar reporte
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: starter-week-01-evidence
           if-no-files-found: ignore

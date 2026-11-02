@@ -34,10 +34,10 @@ jobs:
       NEXT_TELEMETRY_DISABLED: 1
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Node.js según .nvmrc
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -138,7 +138,7 @@ jobs:
 
       - name: Publicar reportes (también si falla una prueba)
         if: ${{ always() }}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: academic-evaluation-s08-${{ github.sha }}
           if-no-files-found: warn
