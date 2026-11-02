@@ -39,6 +39,11 @@ gha-creds-*.json
 # --- Reporte generado por `make verify` ---
 reports/verification.json
 
+# --- Semana 9: reportes generados por el escaneo de secretos y la auditoría de dependencias ---
+reports/secrets-scan.json
+reports/secrets-scan-bundle.json
+reports/npm-audit.json
+
 # --- Archivos de sistema operativo ---
 .DS_Store
 Thumbs.db
