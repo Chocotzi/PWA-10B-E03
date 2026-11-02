@@ -1,6 +1,6 @@
 # Pruebas End-to-End (`tests/e2e/`)
 
-Responsable: Carlos Andrés Arriaga Márquez (E2E y CI, Semana 8).
+Responsable: Carlos Andrés Arriaga Márquez (E2E y CI, Semana 8; encabezados y CSP, Semana 9).
 
 El flujo crítico se prueba desde la interfaz en dos niveles. Ninguno busca texto en el código fuente:
 los dos manejan la pantalla de `/inspecciones` con eventos de usuario y comprueban lo que se ve, lo que
@@ -10,6 +10,7 @@ queda en IndexedDB y lo que recibe el servidor.
 | --- | --- | --- | --- |
 | `critical-inspection-flow.spec.ts` | Vitest + Testing Library + jsdom | `npm run test:e2e` (`npx vitest run tests/e2e`) | No levanta servidor: `fetch` llega al handler real de `POST /api/inspecciones` dentro del mismo proceso. |
 | `critical-inspection-flow.pw.ts` | Playwright + Chromium real | `npm run build` y luego `npm run test:e2e:browser` | `playwright.config.ts` arranca `npm run start -- --port 3100` (`next start`) y espera `/inspecciones`. |
+| `security-headers.pw.ts` (Semana 9) | Playwright + Chromium real | el mismo `npm run test:e2e:browser` | El mismo `next start` del puerto 3100. |
 
 ## Escenarios
 
@@ -19,6 +20,9 @@ queda en IndexedDB y lo que recibe el servidor.
 | Respuesta perdida: el servidor aplicó pero el cliente no lo supo; el reintento no duplica | ✔ | — |
 | Cámara y ubicación negadas: la pantalla lo explica y la captura se completa | ✔ (sin evidencia) | ✔ (con imagen sintética por «Elegir imagen», sin ubicación) |
 | Capacidades ausentes (sin cámara, geolocalización ni procesamiento de imagen) | ✔ | — |
+| Semana 9: encabezados en páginas, API, `/sw.js`, manifiesto y `robots.txt`; HSTS solo con `X-Forwarded-Proto: https` | — | ✔ |
+| Semana 9: cero violaciones de CSP al capturar con cámara, foto y ubicación sintéticas; worker registrado; guardar, recargar y sincronizar sin red | — | ✔ (cámara y ubicación concedidas solo en este caso; el micrófono, aunque concedido, queda bloqueado por `Permissions-Policy`) |
+| Semana 9: control negativo, un script inyectado corre pero no puede usar eval ni cargar o enviar nada a otro origen; la aplicación no se deja encuadrar | — | ✔ |
 
 ## Aislamiento y datos
 
