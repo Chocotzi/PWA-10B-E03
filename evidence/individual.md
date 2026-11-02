@@ -14,6 +14,86 @@ Conserven las secciones de semanas anteriores. Cada integrante completa su bloqu
 - Limitación o riesgo: El arnés no es Vitest; puede haber diferencias menores de comportamiento hasta que corra en CI. El endpoint sigue siendo de demostración en memoria y expulsar entradas antiguas de los mapas podría permitir que un reenvío muy tardío se trate como nuevo. Mientras Carlos no agregue `public/robots.txt` y Cleber no agregue `docs/privacy-data-inventory.md`, `npm run verify` y el workflow del kit fallarán por esos dos archivos.
 - IA: herramienta, propósito, partes influidas y validación propia; o «no utilicé IA»: Utilicé Claude (Anthropic) para proponer el diseño de la validación, redactar el código de `src/lib/security/`, las pruebas y el borrador del modelo de amenazas. Revisé la lógica, comprobé el tipado con `tsc`, ejecuté las pruebas en el arnés descrito y probé que fallan al romper los controles; la ejecución oficial en Vitest y CI sigue pendiente.
 
+## Nombre: Carlos Andrés Arriaga Márquez · matrícula 3523110609
+
+- Grupo y equipo: 10B · Equipo 03 · Tarea 2 de la Semana 9: navegador, secretos y dependencias (T-05 a T-11).
+- Commit SHA: el SHA final común se entrega en Classroom (regla del curso: no se hace un commit solo para
+  escribirlo aquí). Commits de esta tarea en `dev-carlos`, sobre `dev-benkis` (`0c67adc`):
+  `c45bfb8` (dependencias), `c29fcb7` (encabezados y CSP), `01364b3` (escáner de secretos), `7ae68c8` (pruebas),
+  `5ac4595` (CI y Dependabot) y el commit de documentación que contiene esta sección.
+- Mi contribución de esta semana y enlace:
+  - Encabezados y CSP en una sola fuente, [`src/lib/security/headers.ts`](../src/lib/security/headers.ts),
+    publicada por [`next.config.mjs`](../next.config.mjs) con `headers()`; HSTS solo en producción detrás de
+    HTTPS; `/sw.js` con CSP propia y `no-cache`; `/api/**` con `no-store`; sin `X-Powered-By`;
+    [`public/robots.txt`](../public/robots.txt).
+  - Escáner de secretos: [`src/lib/security/secrets.ts`](../src/lib/security/secrets.ts) (`scanForSecrets`) y
+    [`scripts/scan-secrets.mjs`](../scripts/scan-secrets.mjs) para el repositorio y para el bundle.
+  - Dependencias: etapa `npm audit --omit=dev --audit-level=high`, `npm ci --ignore-scripts` y
+    [`.github/dependabot.yml`](../.github/dependabot.yml). La etapa encontró `next` 16.3.4 con avisos críticos y
+    lo actualicé a 16.4.3.
+  - Pruebas: bloque 2 de [`tests/security.spec.ts`](../tests/security.spec.ts) (50 pruebas) y
+    [`tests/e2e/security-headers.pw.ts`](../tests/e2e/security-headers.pw.ts) (3 casos en Chromium).
+  - Filas T-05 a T-11 y sección 8 de [`docs/threat-model.md`](../docs/threat-model.md), sección «Semana 9» del
+    [README](../README.md) y etapas nuevas del [workflow](../.github/workflows/academic-evaluation.yml).
+- Decisión técnica y motivo:
+  - `'unsafe-inline'` en `script-src` y no un nonce por petición. Lo probé con `next build && next start` en una
+    rama local con `proxy.ts`: con nonce, `/inspecciones` y `/offline` (estáticas) perdieron 11 y 10 scripts y la
+    captura no se hidrató. Forzando render dinámico las 7 rutas funcionaron, pero sin red el service worker sirvió
+    tres recargas con el mismo nonce, que así ya no protege. Compensé con una CSP sin `'unsafe-eval'` en
+    producción, sin dominios externos y con `connect-src` e `img-src` propios.
+  - Una sola fuente para la política: Node 20 no ejecuta TypeScript, así que `next.config.mjs` y el escáner
+    quitan los tipos con el compilador que ya instala el proyecto, en lugar de copiar la política en JavaScript.
+  - HSTS solo si el proxy indica HTTPS (`X-Forwarded-Proto`), porque por HTTP el navegador lo ignora.
+  - Umbral `high` en producción para `npm audit`. Ante un hallazgo se actualiza en una rama a la versión corregida
+    y se corre el pipeline completo.
+- Prueba/comando que ejecuté: en un clon limpio con Node 20.20.2 y npm 10.8.2, las mismas etapas del workflow:
+  `npm ci --ignore-scripts`, `npm run audit:deps`, `npm run scan:secrets`, `npm run lint`, `npm run typecheck`,
+  `npm run build`, `npm run scan:secrets -- --bundle`, `npm run verify`, las tres capas, `npm test` y
+  `npm run test:e2e:browser`. Además, `npx playwright test --repeat-each=3` con `CI=1` y diez defectos
+  introducidos a propósito, uno por uno.
+- Resultado observado y enlace al reporte:
+  - `npm test`: 274/274 (50 nuevas en `tests/security.spec.ts`); `headers.ts` y `secrets.ts` con 100 % de líneas.
+  - E2E en Chromium: 5/5 (3 nuevos) y 15/15 al repetirlo tres veces; cero violaciones de CSP y de
+    Permissions-Policy durante la captura y el flujo sin red.
+  - Escaneo de secretos: 0 hallazgos en 116 archivos del repositorio y en 39 del bundle
+    (`reports/secrets-scan.json`, `reports/secrets-scan-bundle.json`).
+  - `npm audit --omit=dev`: antes 3 avisos (1 crítico, 2 altos); después de actualizar, 0
+    (`reports/npm-audit.json`). Lint sin errores (los 34 avisos de la línea base no cambiaron), tipos y build sin
+    errores.
+  - Los diez defectos controlados (`'unsafe-eval'`, cámara abierta a todos, HSTS sin condición, worker que
+    intercepta `/api`, abre URL externas o guarda `no-store`, regla JWT quitada, filtro de asignaciones quitado,
+    `/sw.js` sin su CSP y `/api` sin `no-store`) hicieron fallar al menos una prueba cada uno. Con
+    `microphone=(self)` falló el E2E.
+  - `npm run verify` falla solo porque falta `docs/privacy-data-inventory.md`, que entrega Cleber en la Tarea 3.
+  - Los reportes de CI quedan en el artefacto de cada ejecución del workflow.
+- Qué demuestra y qué no demuestra:
+  - Demuestra que el navegador recibe y aplica la política: un script inyectado no puede usar eval ni cargar o
+    enviar nada a otro origen, la aplicación no se deja encuadrar y el micrófono queda bloqueado aunque se conceda.
+    También que la captura completa y el flujo sin red funcionan con la CSP activa, que el repositorio y el
+    bundle no contienen credenciales con formato conocido y que las dependencias de producción no tienen avisos
+    altos ni críticos hoy.
+  - No demuestra que un script en línea inyectado no corra: eso es lo que acepta `'unsafe-inline'`. Tampoco el
+    comportamiento en Safari o Firefox, un HTTPS real detrás de un proxy (se simula con `X-Forwarded-Proto`), ni
+    secretos sin formato reconocible o que solo queden en el historial de git.
+- Limitación o riesgo:
+  - El resultado de `npm audit` cambia con el tiempo aunque el commit no cambie, porque consulta avisos en línea.
+  - Node 20, el de `.nvmrc`, ya no recibe parches de seguridad desde abril de 2026; propongo al equipo pasar a 22
+    o 24.
+  - La búsqueda por palabras de `public-tests/check.sh` falla con el propio texto del curso, así que el control
+    real de secretos es el escáner por formato.
+- IA: herramienta, propósito, partes influidas y validación propia:
+  - Herramienta y propósito: usé Claude (Anthropic), en una sesión conectada a mi repositorio local, para revisar
+    el estado de las ramas, diseñar la política y el escáner, correr el experimento del nonce, actualizar
+    dependencias y generar código, pruebas y documentación.
+  - Partes influidas: los archivos listados en «Mi contribución» y esta sección.
+  - Validación: los resultados de arriba salieron de esa sesión, en un clon limpio con Node 20.
+  - Validación propia en mi equipo (Windows, Node v24.14.0, npm 11.9.0), ya con `next` 16.4.3 instalado:
+    `npm ci` instaló 500 paquetes; `npm run build` terminó sin errores; `npm run lint`, 0 errores y los 34 avisos
+    de la línea base; `npm run typecheck` sin errores; `npm run scan:secrets`, PASS con 0 hallazgos en 117
+    archivos; `npm test`, 274/274 en 19 archivos; `npm run test:e2e:browser`, 5/5 en Chromium. `npm run verify`
+    falla solo porque falta `docs/privacy-data-inventory.md` (Tarea 3). Subí la rama con
+    `git push origin dev-carlos` (`f00c76b..e267f3b`).
+
 ---
 
 # Evidencia individual · semana 8

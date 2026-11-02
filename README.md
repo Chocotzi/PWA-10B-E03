@@ -41,7 +41,7 @@ make verify
 exacto sin `make` (por ejemplo en Windows) es:
 
 ```bash
-npm run lint && npm run typecheck && npm run verify && npm test
+npm run lint && npm run typecheck && npm run verify && npm run scan:secrets && npm test
 ```
 
 | Comando | Qué ejecuta |
@@ -49,7 +49,9 @@ npm run lint && npm run typecheck && npm run verify && npm test
 | `npm run lint` | `eslint .` con la configuración oficial de Next.js 16 (`eslint.config.mjs`). |
 | `npm run typecheck` | `tsc --noEmit` sobre `src/`. |
 | `npm run verify` | `node scripts/verify.mjs`: comprueba los artefactos de cada semana y que cada capa de pruebas tenga pruebas; escribe `reports/verification.json`. |
+| `npm run scan:secrets` | `node scripts/scan-secrets.mjs`: busca credenciales en el repositorio (con `-- --bundle`, en el build); escribe `reports/secrets-scan.json`. Semana 9. |
 | `npm test` | `node tests/starter.spec.mjs && vitest run --coverage`: suite completa con cobertura (`coverage/`) y JUnit (`test-results/junit.xml`). |
+| `npm run audit:deps` | `npm audit --omit=dev --audit-level=high`: avisos de seguridad en dependencias de producción. Necesita red, por eso corre en CI y no en `make verify`. Semana 9. |
 | `npm run build` | `next build`: compilación de producción (incluye la comprobación de tipos de Next.js). |
 | `bash public-tests/check.sh` | Checks públicos del curso (requiere ripgrep, `rg`). |
 
@@ -402,7 +404,7 @@ Con Node `>=20.9.0` (`.nvmrc`: 20) y npm 10:
 ```bash
 npm ci                                  # instalación limpia
 npm run build && npm start              # arranque de producción (http://localhost:3000)
-make verify                             # lint + tipos + artefactos + suite completa
+make verify                             # lint + tipos + artefactos + secretos + suite completa
 npx playwright install chromium         # una vez por equipo, para el E2E en navegador
 npm run test:e2e:browser                # E2E en Chromium (requiere el build)
 ```
@@ -435,7 +437,7 @@ conservan como retroalimentación de esas semanas.
 
 | # | Etapa | Comando | Falla si… |
 | --- | --- | --- | --- |
-| 1 | Instalación limpia | `npm ci --no-audit --no-fund` | el lockfile no coincide o falla una dependencia |
+| 1 | Instalación limpia | `npm ci --ignore-scripts --no-audit --no-fund` (Semana 9: sin scripts de instalación) | el lockfile no coincide o falla una dependencia |
 | 2 | Lint | `npm run lint` | ESLint reporta un error (los avisos se muestran pero no fallan) |
 | 3 | Tipos | `npm run typecheck` | hay errores de TypeScript en `src/` |
 | 4 | Build | `npm run build` | `next build` falla |
@@ -446,8 +448,10 @@ conservan como retroalimentación de esas semanas.
 | 9 | Suite completa con cobertura | `npm test` | falla cualquier prueba o no se cumple el umbral de cobertura |
 | 10 | E2E en Chromium | `npx playwright install --with-deps chromium` y `npm run test:e2e:browser` | falla el flujo en el navegador real |
 
-Cada etapa corre si su requisito terminó bien (por ejemplo, las pruebas corren aunque falle el lint), para
-ver todos los fallos en una sola ejecución; el job termina en rojo si falla cualquiera. Al final, siempre,
+La Semana 9 agrega tres etapas de seguridad (auditoría de dependencias y secretos en el repositorio y en el
+bundle); están en [su sección](#etapas-de-ci-agregadas-en-la-semana-9). Cada etapa corre si su requisito
+terminó bien (por ejemplo, las pruebas corren aunque falle el lint), para ver todos los fallos en una sola
+ejecución; el job termina en rojo si falla cualquiera. Al final, siempre,
 se publica el artefacto `academic-evaluation-s08-<SHA>` con `test-results/`, `coverage/`,
 `playwright-report/` y `reports/verification.json`, y la página de la ejecución muestra un resumen por etapa
 con el conteo de pruebas y la cobertura (`scripts/ci-summary.mjs`).
@@ -488,4 +492,105 @@ integró.
 | Workflow | [`.github/workflows/academic-evaluation.yml`](.github/workflows/academic-evaluation.yml) |
 | Ejecuciones de CI | <https://github.com/Chocotzi/PWA-10B-E03/actions/workflows/academic-evaluation.yml>; el enlace del SHA final se entrega en Classroom |
 | Reportes | artefacto `academic-evaluation-s08-<SHA>` de cada ejecución |
+| Evidencia individual | [`evidence/individual.md`](evidence/individual.md) |
+
+## Semana 9 — Seguridad y privacidad
+
+Modelo de amenazas, controles y pruebas en [`docs/threat-model.md`](docs/threat-model.md). Autoría:
+validación estricta y API endurecida, Benkis (T-01 a T-04); encabezados, CSP, secretos y dependencias,
+Carlos (T-05 a T-11); privacidad e inventario de datos, Cleber (T-12 a T-14).
+
+### Encabezados y CSP
+
+Todas las respuestas (páginas, API, estáticos y archivos de `public/`) llevan una Content Security Policy y
+encabezados de navegador definidos en una sola fuente, [`src/lib/security/headers.ts`](src/lib/security/headers.ts),
+que `next.config.mjs` publica con `headers()`. La CSP solo permite recursos del propio origen
+(`default-src`, `connect-src`, `worker-src` y `manifest-src 'self'`; en imágenes también `data:` y `blob:`
+para la foto de evidencia), bloquea plugins (`object-src 'none'`), limita `base-uri` y `form-action` y prohíbe
+mostrar la aplicación dentro de un iframe (`frame-ancestors 'none'`). Para los scripts se eligió
+`'unsafe-inline'`, sin `'unsafe-eval'` en producción, en lugar de un nonce por petición: el nonce obliga a
+renderizar todas las rutas en cada petición y, sin red, el service worker vuelve a servir el mismo nonce que
+guardó. El experimento con `next build && next start` y lo que compensa la decisión están en la
+[sección 8.2](docs/threat-model.md#82-decisión-unsafe-inline-frente-a-un-nonce-por-petición) del modelo de
+amenazas. Además se envían `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin`,
+`Permissions-Policy` (cámara y ubicación solo para este origen, micrófono denegado),
+`Cross-Origin-Opener-Policy: same-origin`, `X-Frame-Options: DENY` y, solo en producción detrás de HTTPS,
+`Strict-Transport-Security`. `/sw.js` se revalida en cada visita con su propia CSP sin excepciones, `/api/**`
+conserva `Cache-Control: no-store` y se quitó `X-Powered-By`.
+
+Comprobación manual con el build de producción (en PowerShell usa `curl.exe`):
+
+```bash
+npm run build && npm start
+curl -sI http://localhost:3000/inspecciones                       # encabezados; sin HSTS por HTTP
+curl -sI -H "X-Forwarded-Proto: https" http://localhost:3000/     # con HSTS, como detrás de un proxy TLS
+```
+
+En Chrome, DevTools → Console no debe mostrar errores de «Content Security Policy» al usar la captura, y
+DevTools → Application → Service workers debe mostrar `/sw.js` activo.
+
+### Secretos
+
+`npm run scan:secrets` revisa lo versionado y lo nuevo que git no ignora, sin `node_modules/`, lockfiles ni
+binarios, con las reglas de [`src/lib/security/secrets.ts`](src/lib/security/secrets.ts) (claves de nube y de
+API, llaves privadas, JWT, contraseñas en URL, asignaciones sospechosas y `NEXT_PUBLIC_*` con nombre
+sensible). Después del build, `npm run scan:secrets -- --bundle` revisa lo que recibe el navegador. Ninguno
+muestra el valor encontrado completo. `.gitignore` excluye `.env*` (menos `.env.example`), llaves y archivos de
+credenciales, y el código solo lee `NODE_ENV`. Si el escáner encuentra algo: quitar el valor, rotarlo si llegó
+a subirse y volver a ejecutar. La búsqueda por palabras de `public-tests/check.sh` falla con el propio texto del
+curso, así que no sirve como control (sección 8.4 del modelo de amenazas).
+
+### Dependencias
+
+CI instala con `npm ci --ignore-scripts` (ningún paquete ejecuta código al instalarse) y corre
+`npm audit --omit=dev --audit-level=high`: falla con un aviso `high` o `critical` en dependencias de producción
+y solo muestra `moderate` y `low`. Con un hallazgo se actualiza en una rama a la primera versión corregida, se
+revisa que el lockfile solo cambie esos paquetes y se corre el pipeline completo; si no hay versión corregida,
+se usa `overrides` o se registra una excepción con fecha en el modelo de amenazas, sin bajar el umbral. El
+primer caso real fue `next` 16.3.4, con avisos críticos: se actualizó a 16.4.3 (commit `c45bfb8`). Dependabot
+([`.github/dependabot.yml`](.github/dependabot.yml)) propone cada semana las actualizaciones de npm y de las
+acciones de GitHub. Las de seguridad se activan en Settings → Advanced Security.
+
+### robots.txt
+
+`public/robots.txt` pide a los buscadores no recorrer `/api/` ni `/inspecciones`. No es control de acceso:
+cualquiera puede leerlo y pedir esas rutas; la protección está en la API.
+
+### Etapas de CI agregadas en la Semana 9
+
+En [`.github/workflows/academic-evaluation.yml`](.github/workflows/academic-evaluation.yml), además de las
+etapas de la Semana 8:
+
+| Etapa | Comando | Falla si… |
+| --- | --- | --- |
+| Auditoría de dependencias de producción | `npm run audit:deps` (además guarda `reports/npm-audit.json`) | hay un aviso `high` o `critical` |
+| Secretos en el repositorio | `npm run scan:secrets` | el escáner encuentra una credencial o un archivo sensible |
+| Secretos en el bundle | `npm run scan:secrets -- --bundle` (después del build) | el código que recibe el navegador contiene una credencial |
+| E2E en Chromium | `npm run test:e2e:browser` (ya existía; ahora incluye `tests/e2e/security-headers.pw.ts`) | falta un encabezado, hay una violación de CSP o falla el flujo sin red |
+
+Los reportes `reports/secrets-scan.json`, `reports/secrets-scan-bundle.json` y `reports/npm-audit.json` se
+publican en el artefacto de cada ejecución.
+
+### Supuestos y límites
+
+- `'unsafe-inline'` deja correr un script en línea inyectado; la CSP limita lo que puede hacer (sin eval, sin
+  código ni conexiones a otro origen), no que corra.
+- HSTS depende de que el proxy envíe `X-Forwarded-Proto: https`; Vercel ya envía HSTS por su cuenta.
+- El escáner usa reglas de formato: no ve contraseñas sin dígitos ni secretos que solo queden en commits
+  anteriores.
+- `npm audit` depende de la base de avisos en línea; el resultado de un mismo commit puede cambiar con el tiempo.
+- Node 20 (`.nvmrc`) terminó su soporte en abril de 2026; actualizar a Node 22 o 24 queda como recomendación
+  para el equipo.
+- Detalle completo en la [sección 8.6](docs/threat-model.md#86-límites-conocidos-de-la-tarea-2) del modelo de
+  amenazas.
+
+### Evidencia de la Semana 9 (Tarea 2)
+
+| Elemento | Ubicación |
+| --- | --- |
+| Política de encabezados y CSP | [`src/lib/security/headers.ts`](src/lib/security/headers.ts), [`next.config.mjs`](next.config.mjs) |
+| Escáner de secretos | [`src/lib/security/secrets.ts`](src/lib/security/secrets.ts), [`scripts/scan-secrets.mjs`](scripts/scan-secrets.mjs) |
+| Pruebas | bloque 2 de [`tests/security.spec.ts`](tests/security.spec.ts) y [`tests/e2e/security-headers.pw.ts`](tests/e2e/security-headers.pw.ts) |
+| Dependencias | [`.github/dependabot.yml`](.github/dependabot.yml) y la etapa de auditoría del workflow |
+| Amenazas T-05 a T-11 y decisiones | [`docs/threat-model.md`](docs/threat-model.md), secciones 5 y 8 |
 | Evidencia individual | [`evidence/individual.md`](evidence/individual.md) |

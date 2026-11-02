@@ -1,0 +1,10 @@
+# Semana 9 · Tarea 2 (Carlos). PWA de inspecciones con datos sintéticos.
+#
+# robots.txt NO es control de acceso: solo pide a los rastreadores que respetan el estándar que no
+# recorran estas rutas. Cualquiera puede leer este archivo y pedir las rutas igual, así que no debe
+# listar nada secreto. La protección real está en la API (validación, mismo origen y no-store).
+User-agent: *
+# API de inspecciones: datos en JSON, sin valor para un buscador.
+Disallow: /api/
+# Listado y detalle de inspecciones (datos de mantenimiento).
+Disallow: /inspecciones
