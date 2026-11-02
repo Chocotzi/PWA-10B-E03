@@ -1,0 +1,54 @@
+# Semana 9 · Tarea 2 (Carlos) · T-09: actualizaciones de dependencias auditables.
+#
+# Dependabot abre pull requests semanales con versiones nuevas de npm y de las acciones de GitHub. Cada PR
+# corre el workflow completo (npm audit, escaneo de secretos, pruebas y E2E) antes de poder integrarse.
+# Las actualizaciones de seguridad no dependen de este archivo: se activan en Settings → Advanced Security
+# (Dependabot alerts y Dependabot security updates). Los `ignore` de abajo solo frenan versiones mayores
+# de rutina; un aviso de seguridad sigue generando su PR.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:00"
+      timezone: "America/Mexico_City"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+    groups:
+      # React y sus tipos cambian juntos: un PR con los cuatro (Next.js 16.4 ya avisa que React 18 es obsoleto).
+      react:
+        patterns: ["react", "react-dom", "@types/react", "@types/react-dom"]
+      # Next.js y su configuración de ESLint deben ir en la misma versión.
+      next:
+        patterns: ["next", "eslint-config-next"]
+      # Lo que no rompe compatibilidad, en un PR para producción y otro para desarrollo.
+      produccion-menores:
+        dependency-type: "production"
+        update-types: ["minor", "patch"]
+      desarrollo-menores:
+        dependency-type: "development"
+        update-types: ["minor", "patch"]
+    ignore:
+      # ESLint 10: los plugins de eslint-config-next todavía no lo soportan (README, Semana 8).
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      # Los tipos de Node siguen la versión de .nvmrc; se actualizan cuando cambie Node.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:00"
+      timezone: "America/Mexico_City"
+    commit-message:
+      prefix: "ci(deps)"
+    groups:
+      acciones:
+        patterns: ["*"]

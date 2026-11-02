@@ -49,7 +49,13 @@ const required = [
   "src/lib/security/index.ts",
   "tests/security.spec.ts",
   "public/robots.txt",
-  "README.md"
+  "README.md",
+  // Semana 9 · Tarea 2 (Carlos): encabezados y CSP, secretos y dependencias.
+  "src/lib/security/headers.ts",
+  "src/lib/security/secrets.ts",
+  "scripts/scan-secrets.mjs",
+  ".github/dependabot.yml",
+  "tests/e2e/security-headers.pw.ts"
 ];
 
 // Semana 8: cada capa debe tener al menos un archivo de pruebas ejecutable.

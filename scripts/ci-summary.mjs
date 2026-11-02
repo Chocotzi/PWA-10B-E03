@@ -1,4 +1,4 @@
-// Semana 8: resumen de una ejecución de CI en Markdown (para $GITHUB_STEP_SUMMARY).
+// Semanas 8 y 9: resumen de una ejecución de CI en Markdown (para $GITHUB_STEP_SUMMARY).
 // Lee el resultado de cada etapa (variables STAGE_*), los JUnit de test-results/ y la cobertura de
 // coverage/coverage-summary.json. Nunca falla: si falta un reporte, lo indica en la tabla.
 import { existsSync, readFileSync } from "node:fs";
@@ -7,10 +7,13 @@ import { resolve } from "node:path";
 const root = resolve(import.meta.dirname, "..");
 
 const stages = [
-  ["Instalación limpia", "npm ci", "STAGE_INSTALL"],
+  ["Instalación limpia", "npm ci --ignore-scripts", "STAGE_INSTALL"],
+  ["Auditoría de dependencias de producción", "npm run audit:deps", "STAGE_AUDIT"],
+  ["Secretos en el repositorio", "npm run scan:secrets", "STAGE_SECRETS"],
   ["Lint", "npm run lint", "STAGE_LINT"],
   ["Tipos", "npm run typecheck", "STAGE_TYPECHECK"],
   ["Build de producción", "npm run build", "STAGE_BUILD"],
+  ["Secretos en el bundle", "npm run scan:secrets -- --bundle", "STAGE_SECRETS_BUNDLE"],
   ["Artefactos requeridos", "npm run verify", "STAGE_ARTIFACTS"],
   ["Unitarias", "npm run test:unit", "STAGE_UNIT", "test-results/unit.xml"],
   ["Integración", "npm run test:integration", "STAGE_INTEGRATION", "test-results/integration.xml"],
@@ -32,7 +35,7 @@ function junitTotals(file) {
   return `${tests - failed - skipped}/${tests} pasan${failed ? ` · ${failed} fallan` : ""}${skipped ? ` · ${skipped} omitidas` : ""}`;
 }
 
-const lines = ["## Semana 8 · Verificación integral", ""];
+const lines = ["## Semanas 8 y 9 · Verificación integral", ""];
 const { GITHUB_SERVER_URL, GITHUB_REPOSITORY, GITHUB_RUN_ID, GITHUB_SHA } = process.env;
 if (GITHUB_SHA) lines.push(`SHA: \`${GITHUB_SHA}\``, "");
 lines.push("| Etapa | Comando | Resultado | Pruebas |", "| --- | --- | --- | --- |");
