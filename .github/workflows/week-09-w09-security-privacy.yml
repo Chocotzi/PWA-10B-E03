@@ -16,7 +16,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Setup 1
         shell: bash
         run: |
@@ -39,7 +39,7 @@ jobs:
           test -d tests && find tests -type f -print -quit | grep -q . && npm run test --if-present -- --run
       - name: Upload evaluation artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: academic-evidence-w09-security-privacy
           if-no-files-found: ignore
