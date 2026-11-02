@@ -87,9 +87,12 @@ Conserven las secciones de semanas anteriores. Cada integrante completa su bloqu
     dependencias y generar código, pruebas y documentación.
   - Partes influidas: los archivos listados en «Mi contribución» y esta sección.
   - Validación: los resultados de arriba salieron de esa sesión, en un clon limpio con Node 20.
-  - Validación propia en mi equipo: _pendiente: revisar el diff de cada commit y ejecutar `npm ci`,
-    `npm run build`, `npm run scan:secrets`, `npx vitest run tests/security.spec.ts` y `npm run test:e2e:browser`;
-    anotar aquí el resultado._
+  - Validación propia en mi equipo (Windows, Node v24.14.0, npm 11.9.0), ya con `next` 16.4.3 instalado:
+    `npm ci` instaló 500 paquetes; `npm run build` terminó sin errores; `npm run lint`, 0 errores y los 34 avisos
+    de la línea base; `npm run typecheck` sin errores; `npm run scan:secrets`, PASS con 0 hallazgos en 117
+    archivos; `npm test`, 274/274 en 19 archivos; `npm run test:e2e:browser`, 5/5 en Chromium. `npm run verify`
+    falla solo porque falta `docs/privacy-data-inventory.md` (Tarea 3). Subí la rama con
+    `git push origin dev-carlos` (`f00c76b..e267f3b`).
 
 ---
 
