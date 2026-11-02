@@ -23,6 +23,19 @@ export type ValidationResult =
   | { ok: true; value: PendingMutation }
   | { ok: false; issues: ValidationIssue[] };
 
+/**
+ * Claves admitidas por nivel. Se exportan para que el inventario de privacidad (`privacy.ts`) y sus
+ * pruebas detecten cualquier campo nuevo que no esté documentado.
+ */
+export const MUTATION_KEYS = { required: ["id", "inspection", "baseRevision", "createdAt", "status"], optional: ["serverRevision"] };
+export const INSPECTION_KEYS = {
+  required: ["id", "location", "date", "inspector", "status", "statusLabel", "findings", "summary"],
+  optional: ["evidence"],
+};
+export const EVIDENCE_KEYS = { required: [] as string[], optional: ["photo", "location"] };
+export const PHOTO_KEYS = { required: ["mimeType", "dataUrl", "width", "height", "bytes", "source", "capturedAt"], optional: [] as string[] };
+export const LOCATION_KEYS = { required: ["latitude", "longitude", "accuracyMeters", "capturedAt"], optional: [] as string[] };
+
 const ID_PATTERN = /^[A-Za-z0-9._:-]+$/;
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 const DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/;
@@ -138,7 +151,7 @@ class Collector {
 
 function validatePhoto(photo: unknown, c: Collector, path: string) {
   if (!isPlainObject(photo)) { c.add(path, "type"); return; }
-  c.exactKeys(photo, path, ["mimeType", "dataUrl", "width", "height", "bytes", "source", "capturedAt"], []);
+  c.exactKeys(photo, path, PHOTO_KEYS.required, PHOTO_KEYS.optional);
   if (photo.mimeType !== undefined && photo.mimeType !== "image/jpeg") c.add(path + ".mimeType", "unsupported_type");
   if (photo.source !== undefined && photo.source !== "camera" && photo.source !== "file") c.add(path + ".source", "enum");
   if (photo.width !== undefined) c.integer(photo, "width", path, 1, MAX_PHOTO_DIMENSION);
@@ -156,7 +169,7 @@ function validatePhoto(photo: unknown, c: Collector, path: string) {
 
 function validateLocation(location: unknown, c: Collector, path: string) {
   if (!isPlainObject(location)) { c.add(path, "type"); return; }
-  c.exactKeys(location, path, ["latitude", "longitude", "accuracyMeters", "capturedAt"], []);
+  c.exactKeys(location, path, LOCATION_KEYS.required, LOCATION_KEYS.optional);
   if (location.latitude !== undefined) c.decimal(location, "latitude", path, -90, 90);
   if (location.longitude !== undefined) c.decimal(location, "longitude", path, -180, 180);
   if (location.accuracyMeters !== undefined) c.decimal(location, "accuracyMeters", path, 0, 100000);
@@ -165,11 +178,7 @@ function validateLocation(location: unknown, c: Collector, path: string) {
 
 function validateInspection(inspection: unknown, c: Collector, path: string) {
   if (!isPlainObject(inspection)) { c.add(path, "type"); return; }
-  c.exactKeys(
-    inspection, path,
-    ["id", "location", "date", "inspector", "status", "statusLabel", "findings", "summary"],
-    ["evidence"],
-  );
+  c.exactKeys(inspection, path, INSPECTION_KEYS.required, INSPECTION_KEYS.optional);
   const has = (key: string) => Object.prototype.hasOwnProperty.call(inspection, key);
   if (has("id")) c.identifier(inspection, "id", path);
   if (has("location")) c.text(inspection, "location", path, MAX_LOCATION_LENGTH);
@@ -184,7 +193,7 @@ function validateInspection(inspection: unknown, c: Collector, path: string) {
   if (has("evidence") && inspection.evidence !== undefined) {
     const evidence = inspection.evidence;
     if (!isPlainObject(evidence)) { c.add(path + ".evidence", "type"); return; }
-    c.exactKeys(evidence, path + ".evidence", [], ["photo", "location"]);
+    c.exactKeys(evidence, path + ".evidence", EVIDENCE_KEYS.required, EVIDENCE_KEYS.optional);
     if (evidence.photo !== undefined) validatePhoto(evidence.photo, c, path + ".evidence.photo");
     if (evidence.location !== undefined) validateLocation(evidence.location, c, path + ".evidence.location");
   }
@@ -194,7 +203,7 @@ export function validateMutation(input: unknown): ValidationResult {
   const c = new Collector();
   if (!isPlainObject(input)) return { ok: false, issues: [{ field: "(cuerpo)", code: "type" }] };
 
-  c.exactKeys(input, "", ["id", "inspection", "baseRevision", "createdAt", "status"], ["serverRevision"]);
+  c.exactKeys(input, "", MUTATION_KEYS.required, MUTATION_KEYS.optional);
   const has = (key: string) => Object.prototype.hasOwnProperty.call(input, key);
   if (has("id")) c.identifier(input, "id", "");
   if (has("createdAt")) c.date(input, "createdAt", "");

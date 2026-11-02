@@ -1,23 +1,33 @@
 import { describe, expect, it } from "vitest";
 import { inspections } from "../src/lib/data/inspections";
 import { PHOTO_MAX_DIMENSION, PHOTO_MAX_OUTPUT_BYTES } from "../src/lib/device/camera";
+import type { MutationStorage, PendingMutation } from "../src/lib/storage/schema";
 import {
+  EVIDENCE_KEYS,
+  INSPECTION_KEYS,
   JPEG_DATA_URL_PREFIX,
+  LOCATION_KEYS,
   MAX_BODY_BYTES,
   MAX_FINDINGS,
   MAX_PHOTO_BYTES,
   MAX_PHOTO_DIMENSION,
   MAX_SUMMARY_LENGTH,
+  MUTATION_KEYS,
+  PHOTO_KEYS,
+  PRIVACY_INVENTORY,
+  SENSITIVE_LOG_KEYS,
   createBoundedMap,
   hasJsonContentType,
   isIsoDate,
   isSameOriginRequest,
+  purgeLocalData,
   readJsonBody,
+  redactForLog,
   validateMutation,
 } from "../src/lib/security";
 
 // Semana 9 · bloque 1 (Benkis): validación estricta de entradas y utilidades HTTP.
-// Los bloques de headers/credenciales (Carlos) y privacidad (Cleber) se añaden como `describe` aparte.
+// El bloque 2 (Carlos) y el bloque 3 (privacidad) están más abajo, cada uno en su propio `describe`.
 
 function mutation(overrides: Record<string, unknown> = {}, inspection: Record<string, unknown> = {}) {
   return {
@@ -613,5 +623,124 @@ describe("Semana 9 · Carlos · service worker sin cachés sensibles ni apertura
     const options = harness.showNotification.mock.calls.at(-1)?.[1] as { data: { url: string } };
     await harness.notificationClick({ data: options.data, close: vi.fn() });
     expect(harness.openWindow).toHaveBeenLastCalledWith(`${ORIGIN}/inspecciones/inspection-002?vista=detalle`);
+  });
+});
+
+// Semana 9 · bloque 3 (Cleber): inventario de privacidad, bitácoras y borrado local.
+describe("Semana 9 · Cleber · privacidad aplicada", () => {
+  const leaves = (prefix: string, keys: { required: string[]; optional: string[] }) =>
+    keys.required.concat(keys.optional).map((key) => `${prefix}${key}`);
+
+  function documentedFields(): string[] {
+    return PRIVACY_INVENTORY.map((entry) => entry.field);
+  }
+
+  it("T-13 · cada campo que la validación admite está en el inventario (y viceversa)", () => {
+    const expected = leaves("", MUTATION_KEYS).filter((field) => field !== "inspection")
+      .concat(leaves("inspection.", INSPECTION_KEYS))
+      .concat(leaves("inspection.evidence.", EVIDENCE_KEYS))
+      .concat(leaves("inspection.evidence.photo.", PHOTO_KEYS))
+      .concat(leaves("inspection.evidence.location.", LOCATION_KEYS));
+    const documented = documentedFields();
+    expect(expected.filter((field) => documented.indexOf(field) < 0)).toEqual([]);
+    expect(documented.filter((field) => expected.indexOf(field) < 0)).toEqual([]);
+    expect(new Set(documented).size).toBe(documented.length);
+  });
+
+  it("T-13 · agregar un campo a Inspection sin documentarlo haría fallar la comprobación", () => {
+    const withUndocumented = INSPECTION_KEYS.required.concat(INSPECTION_KEYS.optional, ["nuevoCampo"])
+      .map((key) => `inspection.${key}`);
+    expect(withUndocumented.filter((field) => documentedFields().indexOf(field) < 0)).toEqual(["inspection.nuevoCampo"]);
+  });
+
+  it("T-13 · una inspección real completa solo usa campos documentados", () => {
+    const sample = {
+      ...inspections[0],
+      evidence: {
+        photo: { mimeType: "image/jpeg", dataUrl: JPEG_DATA_URL_PREFIX + "AAAA", width: 10, height: 10, bytes: 3, source: "file", capturedAt: "2026-10-04T00:00:00.000Z" },
+        location: { latitude: 18.465, longitude: -97.393, accuracyMeters: 100, capturedAt: "2026-10-04T00:00:00.000Z" },
+      },
+    };
+    const found: string[] = [];
+    const walk = (value: Record<string, unknown>, prefix: string) => {
+      Object.keys(value).forEach((key) => {
+        const path = prefix + key;
+        found.push(path);
+        const child = value[key];
+        if (child && typeof child === "object") walk(child as Record<string, unknown>, path + ".");
+      });
+    };
+    walk(sample, "inspection.");
+    expect(found.filter((field) => documentedFields().indexOf(field) < 0)).toEqual([]);
+  });
+
+  it("T-13 · el nombre del responsable y la foto se tratan como datos personales", () => {
+    const byField = (field: string) => PRIVACY_INVENTORY.filter((entry) => entry.field === field)[0];
+    expect(byField("inspection.inspector").category).toBe("personal");
+    expect(byField("inspection.evidence.photo").category).toBe("personal");
+    expect(byField("inspection.evidence.photo.dataUrl").category).toBe("personal");
+    expect(byField("inspection.evidence.location.latitude").category).toBe("personal");
+  });
+
+  it("T-13 · todo dato personal declara finalidad, retención y minimización, y se oculta en bitácoras", () => {
+    PRIVACY_INVENTORY.forEach((entry) => {
+      expect(entry.purpose.length).toBeGreaterThan(5);
+      expect(entry.retention.length).toBeGreaterThan(5);
+      expect(entry.minimization.length).toBeGreaterThan(5);
+      if (entry.category === "personal") expect(entry.redactInLogs).toBe(true);
+    });
+  });
+
+  it("T-13 · las claves que redactForLog oculta coinciden con las marcadas en el inventario", () => {
+    PRIVACY_INVENTORY.filter((entry) => entry.redactInLogs).forEach((entry) => {
+      const segments = entry.field.split(".");
+      expect(segments.some((segment) => SENSITIVE_LOG_KEYS.indexOf(segment) >= 0)).toBe(true);
+    });
+  });
+
+  it("T-13 · redactForLog no deja pasar responsable, resumen, foto ni coordenadas", () => {
+    const inspection = {
+      ...inspections[1],
+      inspector: "Persona Sintética Uno",
+      summary: "Observación con dato privado sintético",
+      evidence: {
+        photo: { mimeType: "image/jpeg", dataUrl: JPEG_DATA_URL_PREFIX + "QUJDRA==", width: 1, height: 1, bytes: 4, source: "camera", capturedAt: "2026-10-04T00:00:00.000Z" },
+        location: { latitude: 18.123, longitude: -97.654, accuracyMeters: 100, capturedAt: "2026-10-04T00:00:00.000Z" },
+      },
+    };
+    const logged = JSON.stringify(redactForLog({ evento: "sync", mutation: { id: "m1", inspection }, extra: [JPEG_DATA_URL_PREFIX + "QUJDRA=="] }));
+    ["Persona Sintética Uno", "dato privado", "QUJDRA", "18.123", "-97.654", "latitude"].forEach((fragment) => {
+      expect(logged).not.toContain(fragment);
+    });
+    expect(logged).toContain("m1");
+    expect(logged).toContain(inspections[1].location); // el laboratorio no es dato personal
+  });
+
+  it("T-13 · redactForLog no modifica el original, reduce errores a su nombre y corta ciclos", () => {
+    const original = { inspector: "Nombre Sintético", nested: { summary: "texto" } };
+    redactForLog(original);
+    expect(original.inspector).toBe("Nombre Sintético");
+    expect(redactForLog(new TypeError("contiene Nombre Sintético"))).toEqual({ name: "TypeError" });
+    const cyclic: Record<string, unknown> = {};
+    cyclic.self = cyclic;
+    expect(() => redactForLog(cyclic)).not.toThrow();
+    expect(redactForLog(null)).toBe(null);
+    expect(redactForLog(7)).toBe(7);
+  });
+
+  it("T-12 · purgeLocalData borra todas las mutaciones y devuelve cuántas eran", async () => {
+    const rows = new Map<string, PendingMutation>();
+    const add = (id: string) => rows.set(id, { id, inspection: { ...inspections[0], id: `synthetic-${id}` }, baseRevision: null, createdAt: "2026-10-04T00:00:00.000Z", status: "pending" });
+    add("a"); add("b"); add("c");
+    const storage: MutationStorage = {
+      add: async (m) => { rows.set(m.id, m); },
+      put: async (m) => { rows.set(m.id, m); },
+      list: async () => Array.from(rows.values()),
+      delete: async (id) => { rows.delete(id); },
+      close: () => undefined,
+    };
+    expect(await purgeLocalData(storage)).toBe(3);
+    expect(rows.size).toBe(0);
+    expect(await purgeLocalData(storage)).toBe(0);
   });
 });

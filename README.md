@@ -56,7 +56,8 @@ npm run lint && npm run typecheck && npm run verify && npm run scan:secrets && n
 | `bash public-tests/check.sh` | Checks públicos del curso (requiere ripgrep, `rg`). |
 
 Las pruebas por capa, el E2E en navegador y las etapas de CI están en la sección
-[Semana 8](#semana-8--pirámide-de-pruebas-e-integración-continua).
+[Semana 8](#semana-8--pirámide-de-pruebas-e-integración-continua). Los controles de seguridad y privacidad están en
+[Semana 9](#semana-9--seguridad-y-privacidad).
 
 Además, para verificar la PWA: abre **Chrome DevTools -> Application -> Manifest** y comprueba que el archivo
 `manifest.webmanifest` carga sin errores y la PWA es instalable.
@@ -498,7 +499,7 @@ integró.
 
 Modelo de amenazas, controles y pruebas en [`docs/threat-model.md`](docs/threat-model.md). Autoría:
 validación estricta y API endurecida, Benkis (T-01 a T-04); encabezados, CSP, secretos y dependencias,
-Carlos (T-05 a T-11); privacidad e inventario de datos, Cleber (T-12 a T-14).
+Carlos (T-05 a T-11); privacidad e inventario de datos (T-12 a T-14), tarea asignada a Cleber y realizada por Benkis porque Cleber no respondió.
 
 ### Encabezados y CSP
 
@@ -593,4 +594,63 @@ publican en el artefacto de cada ejecución.
 | Pruebas | bloque 2 de [`tests/security.spec.ts`](tests/security.spec.ts) y [`tests/e2e/security-headers.pw.ts`](tests/e2e/security-headers.pw.ts) |
 | Dependencias | [`.github/dependabot.yml`](.github/dependabot.yml) y la etapa de auditoría del workflow |
 | Amenazas T-05 a T-11 y decisiones | [`docs/threat-model.md`](docs/threat-model.md), secciones 5 y 8 |
+
+### Resumen de las tres tareas, ejecución y verificación
+
+Resumen de todos los controles de la Semana 9 y de cómo verificarlos de punta a punta.
+
+#### Qué se agregó
+
+| Control | Archivo | Amenazas |
+| --- | --- | --- |
+| Validación estricta de la mutación (tipos, longitudes, claves extra, `__proto__`, foto JPEG, coordenadas) | `src/lib/security/validation.ts`, `limits.ts` | T-01 |
+| Tope real de bytes del cuerpo (413), mapas acotados | `src/lib/security/http.ts`, `bounded-map.ts` | T-02 |
+| Errores genéricos sin eco ni `error.message` | `src/app/api/inspecciones/route.ts`, `[id]/route.ts` | T-03 |
+| `Content-Type` JSON (415) y mismo origen (403) en escrituras | `src/lib/security/http.ts` | T-04 |
+| Encabezados, CSP, escáner de credenciales, auditoría de dependencias y `robots.txt` | `src/lib/security/headers.ts`, `secrets.ts`, `scripts/scan-secrets.mjs`, `public/robots.txt` | T-05 a T-11 |
+| Inventario tipado, `redactForLog`, `purgeLocalData` | `src/lib/security/privacy.ts` | T-12, T-13 |
+| Aviso de privacidad corto y botón «Borrar datos locales» con confirmación y `aria-live` | `src/components/privacy-panel.tsx` | T-12 |
+
+#### Setup, ejecución y verificación
+
+```bash
+npm ci                                  # instalación limpia
+make verify                             # = npm run lint && npm run typecheck && npm run verify && npm test
+npm run build && npm start              # producción en http://localhost:3000
+npm run test:security                   # solo las pruebas de seguridad de la API
+npx vitest run tests/security.spec.ts tests/integration   # seguridad, privacidad e integración
+bash public-tests/check.sh              # comprobación pública del kit
+```
+
+Prueba manual de privacidad: en `/`, guarda una inspección con la red desactivada, pulsa «Borrar datos locales» →
+«Sí, borrar» y comprueba en DevTools → Application → IndexedDB → `inspecciones-sync` que la cola quedó vacía.
+
+#### Pruebas
+
+| Archivo | Qué cubre |
+| --- | --- |
+| `tests/security.spec.ts` | Bloque 1 (Benkis): validación y utilidades HTTP. Bloque 2 (Carlos): cabeceras y credenciales. Bloque 3: inventario completo, `redactForLog` y `purgeLocalData`. |
+| `tests/integration/api-security.spec.ts` | La API real rechaza entradas hostiles (400/403/413/415) y conserva la idempotencia 201/200 y el conflicto 409 de la Semana 5. |
+| `tests/integration/privacy.spec.ts` | Con `fake-indexeddb`: guardar sin red, borrar y comprobar que no queda nada, también al reabrir la base y desde la pantalla de captura. |
+
+#### Supuestos y límites
+
+- Todos los datos son sintéticos. El responsable, el resumen, la foto y la ubicación se tratan como personales.
+- IndexedDB no está cifrada. El borrado local no alcanza lo ya sincronizado en el servidor de demostración, que vive en
+  memoria.
+- No hay autenticación ni bitácora de autoría (T-14, riesgo aceptado).
+- `public-tests/check.sh` busca palabras como *secret* o *token* en todo el repositorio, incluida la documentación en
+  español («secretos»), por lo que puede fallar por texto descriptivo aunque no haya credenciales.
+- El marco legal estatal (Puebla) se tomó de notas de prensa y debe confirmarlo la Unidad de Transparencia.
+
+#### Evidencia de la Semana 9 (completa)
+
+| Elemento | Ubicación |
+| --- | --- |
+| Modelo de amenazas | [`docs/threat-model.md`](docs/threat-model.md) |
+| Inventario de datos y aviso | [`docs/privacy-data-inventory.md`](docs/privacy-data-inventory.md) |
+| Controles | [`src/lib/security/`](src/lib/security/), [`src/components/privacy-panel.tsx`](src/components/privacy-panel.tsx) |
+| Pruebas | [`tests/security.spec.ts`](tests/security.spec.ts), [`tests/integration/`](tests/integration/) |
+| Workflows | [`.github/workflows/academic-evaluation.yml`](.github/workflows/academic-evaluation.yml), [`.github/workflows/week-09-w09-security-privacy.yml`](.github/workflows/week-09-w09-security-privacy.yml) |
+| SHA de entrega | se entrega en Classroom (último run verde de `push`), no en un commit nuevo |
 | Evidencia individual | [`evidence/individual.md`](evidence/individual.md) |

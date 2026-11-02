@@ -1,7 +1,7 @@
 # Modelo de amenazas · PWA de inspecciones de laboratorio (Semana 9)
 
-> Estado: Tarea 1 (Benkis) y Tarea 2 (Carlos, filas T-05 a T-11 y sección 8) integradas. Las filas T-12 a
-> T-14 se completan con los controles y pruebas de Cleber (privacidad).
+> Estado: **versión final** con las tres tareas integradas: Tarea 1 (Benkis, T-01 a T-04), Tarea 2 (Carlos,
+> T-05 a T-11 y sección 8) y Tarea 3 (privacidad, T-12 a T-14 y sección 7; asignada a Cleber y realizada por Benkis).
 > Todos los datos del proyecto son **sintéticos**; no hay cuentas, autenticación ni datos reales.
 
 ## 1. Alcance
@@ -62,11 +62,11 @@ STRIDE: S suplantación · T manipulación · R repudio · I fuga de informació
 | T-09 | Dependencia vulnerable o scripts de instalación | T | `npm ci --ignore-scripts` con lockfile; etapa `npm audit --omit=dev --audit-level=high`; [Dependabot](../.github/dependabot.yml) semanal para npm y Actions; token del workflow de solo lectura | Etapa de CI «Auditoría de dependencias». Primer hallazgo atendido: `next` 16.3.4 (críticos) → 16.4.3, commit `c45bfb8` (8.5) | Carlos | Implementado |
 | T-10 | Cachear respuestas sensibles en el service worker | I | El worker no intercepta `/api/**` y no guarda respuestas `no-store`; la API responde `no-store` y una regla de `next.config.mjs` lo garantiza; `/sw.js` se revalida (`no-cache`) con una CSP propia | `T-10 · …` (con y sin red, cinco variantes de `no-store`, ruta de API codificada) y E2E de encabezados | Carlos | Implementado |
 | T-11 | Permisos excesivos del dispositivo | E | `Permissions-Policy`: `camera=(self)`, `geolocation=(self)`, `microphone=()` y otras APIs sensibles denegadas, sin delegación a iframes externos; los permisos se piden solo tras un clic (Semana 6) | `T-11 · …` y E2E: la página ve cámara y ubicación permitidas, y el micrófono bloqueado aunque el permiso esté concedido | Carlos | Implementado |
-| T-12 | Datos locales visibles en equipo compartido | I | Minimización, borrado local, aviso | Pendiente | Cleber | Pendiente |
-| T-13 | Exposición de datos personales (foto, responsable, ubicación) | I | Inventario, EXIF fuera, ubicación redondeada | Pendiente | Cleber | Pendiente |
-| T-14 | Repudio: no hay bitácora de quién hizo qué | R | Límite declarado: sin autenticación en el curso | Pendiente | Cleber | Pendiente |
+| T-12 | Datos locales visibles en equipo compartido | I | Botón «Borrar datos locales» con confirmación (`purgeLocalData`), aviso corto, minimización | `T-12 · …` en `tests/security.spec.ts` y `tests/integration/privacy.spec.ts` | Cleber (hecho por Benkis) | Implementado |
+| T-13 | Exposición de datos personales (responsable, resumen, foto, ubicación) | I | Inventario tipado como fuente única, `redactForLog`, foto recodificada sin EXIF, ubicación redondeada, notificaciones sin datos personales | `T-13 · …` en `tests/security.spec.ts`; `tests/capabilities.spec.ts` | Cleber (hecho por Benkis) | Implementado |
+| T-14 | Repudio: no hay bitácora de quién hizo qué | R | Límite declarado: sin autenticación en el curso; la bitácora futura debe pasar por `redactForLog` | Sin prueba (riesgo aceptado) | Cleber (hecho por Benkis) | Aceptado |
 
-## 6. Decisiones y supuestos de la Tarea 1
+## 6. Decisiones y supuestos (Tareas 1 y 3)
 
 - **Validación manual sin dependencias.** Evita añadir una librería de esquemas y el riesgo de desincronizar
   `package-lock.json` (ya causó un fallo de `npm ci` en la Semana 8). Costo: más código propio que mantener.
@@ -77,17 +77,22 @@ STRIDE: S suplantación · T manipulación · R repudio · I fuga de informació
   se aceptan, porque el riesgo CSRF solo existe en navegadores, que siempre envían al menos una de las dos.
 - **Mapas acotados con expulsión del más antiguo.** Un atacante podría expulsar confirmaciones antiguas y provocar
   que un reenvío se trate como nuevo; se acepta porque el servidor es solo de demostración y en memoria.
+- **Inventario en código, no solo en Markdown.** La prueba compara el inventario con las claves que la validación
+  admite, así que no se puede agregar un campo sin documentarlo.
+- **Bitácoras redactadas por nombre de clave.** Es simple y predecible; no detecta datos personales escritos en campos
+  libres no marcados.
+- **Borrado local con confirmación en la página** en lugar de `window.confirm`: es accesible, se anuncia con
+  `aria-live` y se puede probar sin diálogos del navegador.
 
-## 7. Límites y fallos conocidos
+## 7. Riesgos residuales
 
-- La API sigue siendo de demostración: sin persistencia ni autenticación, de modo que cualquier cliente del mismo
-  origen puede escribir y no hay limitación de tasa por cliente.
-- El tope de 2 MiB por cuerpo se aplica al leer el flujo; el servidor de Next.js puede haber almacenado ya parte
-  del cuerpo antes de llegar al manejador.
-- La validación de foto comprueba prefijo, alfabeto base64 y tamaño, **no** decodifica la imagen ni valida los
-  bytes JPEG.
-- Las pruebas de esta tarea se ejecutaron con un arnés propio por limitaciones del entorno de desarrollo; la
-  confirmación oficial es la ejecución de Vitest en GitHub Actions.
+| Riesgo | Por qué se acepta | Qué haría falta en producción |
+| --- | --- | --- |
+| IndexedDB sin cifrar | El navegador no ofrece cifrado con clave del usuario sin autenticación | Sesión con expiración y borrado automático; cifrado con clave derivada del inicio de sesión |
+| Memoria del servidor sin persistencia | Endpoint de demostración | Base de datos con tabla de deduplicación y retención definida |
+| Sin autenticación ni bitácora (T-14) | Fuera del alcance del curso | Identidad, autorización por rol y bitácora redactada |
+| Sin limitación de tasa | Endpoint de demostración | Límite por cliente o IP en el borde |
+| Expulsión de confirmaciones antiguas | Tope de memoria de 5000 | Persistir las confirmaciones con su retención |
 
 ## 8. Tarea 2 (Carlos): navegador, secretos y dependencias
 
@@ -209,3 +214,14 @@ credencial de una palabra. El control con reglas de formato es `npm run scan:sec
   Node 22 o 24 afecta a todo el equipo y a CI; queda como recomendación.
 - Las comprobaciones en navegador corren solo en Chromium (no Safari ni Firefox) y no hay reporte de
   violaciones de CSP en producción (`report-to`): una violación real solo se vería en la consola del usuario.
+
+## 9. Límites y fallos conocidos (Tareas 1 y 3)
+
+- La API sigue siendo de demostración: sin persistencia ni autenticación, de modo que cualquier cliente del mismo
+  origen puede escribir y no hay limitación de tasa por cliente.
+- El tope de 2 MiB por cuerpo se aplica al leer el flujo; el servidor de Next.js puede haber almacenado ya parte
+  del cuerpo antes de llegar al manejador.
+- La validación de foto comprueba prefijo, alfabeto base64 y tamaño, **no** decodifica la imagen ni valida los
+  bytes JPEG.
+- Las pruebas de las Tareas 1 y 3 se ejecutaron con un arnés propio por limitaciones del entorno de desarrollo; la
+  confirmación oficial es la ejecución de Vitest en GitHub Actions.
