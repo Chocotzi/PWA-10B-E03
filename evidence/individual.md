@@ -1,3 +1,44 @@
+# Evidencia individual · semana 10
+
+Conserven las secciones de semanas anteriores. Cada integrante completa su bloque con resultados reales.
+
+## Nombre: Estudiante 3523110321
+
+- Estudiante: `3523110321`
+- Grupo y equipo: 10B · Equipo 03 · Tarea 1 de la Semana 10: artefacto reproducible, versionado identificable y health check.
+- Commit SHA evaluado: rama `dev-cleber` sobre `main` (`7dd8a97`); el SHA del commit evaluado y el SHA final común del equipo se entregan en Classroom (por convención del curso no se realiza un commit adicional solo para escribir su propio hash dentro del archivo).
+- Mi contribución de esta semana y enlace:
+  - Contenedor multi-etapa reproducible en [`Dockerfile`](../Dockerfile) y exclusión de artefactos locales y credenciales en [`.dockerignore`](../.dockerignore).
+  - Módulo de identidad y versionado de release en [`src/lib/release/version.ts`](../src/lib/release/version.ts) y generador determinista post-build en [`scripts/write-release-meta.mjs`](../scripts/write-release-meta.mjs).
+  - Endpoint de verificación de salud y versión en [`src/app/api/health/route.ts`](../src/app/api/health/route.ts) (`GET` y `HEAD /api/health` con `Cache-Control: no-store` y respuesta `503` ante metadatos degradados).
+  - Documentación técnica del proceso de release, versionado, decisiones, trade-offs y límites en [`docs/release-process.md`](../docs/release-process.md).
+  - Pruebas unitarias y de contrato (casos positivos y regresiones controladas) en [`tests/unit/release-health.spec.ts`](../tests/unit/release-health.spec.ts).
+- Decisión técnica que puedo explicar:
+  - Diseñé el [`Dockerfile`](../Dockerfile) en cuatro etapas con `node:20-bookworm-slim` (alineado con `.nvmrc`): `deps` (`npm ci --ignore-scripts`), `builder` (`npm run build` + `node scripts/write-release-meta.mjs`), `prod-deps` (`npm ci --omit=dev --ignore-scripts`) y `runner` sin privilegios (`USER node`) con `HEALTHCHECK` contra `http://127.0.0.1:3000/api/health`. En `runner` copié explícitamente `scripts/lib/import-ts.mjs` porque `next.config.mjs` lo importa en el nivel superior al arrancar `next start`, mientras que el compilador `typescript` solo se importa dinámicamente en `headers()` durante build/dev.
+  - Para publicar una versión SemVer identificable sin romper el invariante T-08 de la Semana 9 (`tests/security.spec.ts`, que prohíbe leer en `src/` cualquier variable `process.env.*` distinta de `NODE_ENV`), concentré la lectura de entorno/git en [`scripts/write-release-meta.mjs`](../scripts/write-release-meta.mjs) para emitir `.next/release-meta.json`, y que [`src/lib/release/version.ts`](../src/lib/release/version.ts) resuelva la identidad desde ese artefacto con respaldo determinista a `.next/BUILD_ID` + `package.json`.
+- Prueba que ejecuté y resultado:
+  - `npm ci --ignore-scripts --no-audit --no-fund` → código `0` (`added 501 packages`).
+  - `npm run lint` → código `0` (`0 errors`, 34 avisos históricos de línea base, `0` avisos en archivos nuevos).
+  - `npm run typecheck` → código `0` (`tsc --noEmit` sin errores).
+  - `npm run build` → código `0` (Next.js `16.4.3` compiló todas las rutas incluida `/api/health`).
+  - `node scripts/write-release-meta.mjs` → código `0` (`Metadatos de release escritos: pwa-inspecciones-laboratorio@0.1.0 (7dd8a975967f, build=STQU8q3J5yko1C-2KfvKu)`).
+  - `npm run scan:secrets` y `npm run scan:secrets -- --bundle` → `PASS`, `0` hallazgos en el repositorio y `0` en los 40 archivos del bundle (`reports/secrets-scan.json`, `reports/secrets-scan-bundle.json`).
+  - `npm run verify` → `Starter verificable: PASS` ([`reports/verification.json`](../reports/verification.json)).
+  - `npm test` → `21 passed (21)` suites y `299 passed (299)` pruebas aprobadas (`11/11` nuevas en [`tests/unit/release-health.spec.ts`](../tests/unit/release-health.spec.ts) y `78/78` en [`tests/security.spec.ts`](../tests/security.spec.ts)), con cobertura global de `90.65 %` en líneas, `92.04 %` en ramas y `93.47 %` en funciones ([`reports/junit.xml`](../reports/junit.xml)).
+- Qué demuestra y qué no demuestra:
+  - Demuestra que el proyecto instala y compila en limpio, produce metadatos deterministas de versión/build/revisión, sirve `/api/health` sin caché respondiendo `200` (`status: "ok"`) cuando la identidad es válida y `503` (`status: "degraded"`) ante corrupción de versión, conserva `0` credenciales filtradas y cumple las invariantes estructurales de contenedor no-root.
+  - No demuestra la construcción y ejecución real del contenedor Docker en esta máquina local ni sustituye el smoke test E2E de despliegue ni el procedimiento de rollback del Service Worker (cubiertos en las Tareas 2 y 3 del equipo).
+- Limitación o fallo diagnosticado:
+  - En mi entorno local (macOS) no está instalado el binario `docker` (`command not found: docker`), por lo que la imagen se validó estructuralmente mediante pruebas automatizadas y la ejecución real de `docker build`/`docker run` queda delegada al runner Ubuntu de GitHub Actions al integrar la Tarea 3. Además, durante la implementación diagnostiqué dos restricciones del repositorio: `next.config.mjs` requiere `scripts/lib/import-ts.mjs` presente en la etapa `runner`, y la prueba T-08 de Semana 9 falla si `src/` lee variables de entorno distintas de `NODE_ENV`; ambas quedaron resueltas y cubiertas por pruebas.
+- Cambio que podría defender o modificar en vivo:
+  - Alterar `version` en un `.next/release-meta.json` temporal a un valor no SemVer (por ejemplo `"corrupta"`) y ejecutar `npx vitest run tests/unit/release-health.spec.ts` para demostrar cómo `GET` y `HEAD /api/health` conmutan de `200` a `503` (`status: "degraded"`), o añadir un atributo adicional en `ReleaseMetadata` (como canal de despliegue) y actualizar su contrato en la prueba unitaria.
+- Uso declarado de IA (herramienta, propósito, validación):
+  - Herramienta y propósito: utilicé Gemini (Google DeepMind) para diseñar la estructura multi-etapa del `Dockerfile`, resolver la propagación de metadatos vía `.next/release-meta.json` respetando T-08, redactar `docs/release-process.md` y estructurar las pruebas unitarias y negativas en `tests/unit/release-health.spec.ts`.
+  - Partes influidas: `Dockerfile`, `.dockerignore`, `src/lib/release/version.ts`, `src/app/api/health/route.ts`, `scripts/write-release-meta.mjs`, `docs/release-process.md`, `tests/unit/release-health.spec.ts` y esta sección de evidencia.
+  - Validación humana: revisé los diffs para no tocar archivos asignados a las Tareas 2 y 3, verifiqué la compatibilidad con los invariantes de seguridad de Semana 9 y ejecuté localmente la cadena completa (`npm ci --ignore-scripts --no-audit --no-fund`, `npm run lint`, `npm run typecheck`, `npm run build`, `node scripts/write-release-meta.mjs`, `npm run scan:secrets`, `npm run verify` y `npm test` con 299/299 pruebas aprobadas).
+
+---
+
 # Evidencia individual · semana 9
 
 Conserven las secciones de semanas anteriores. Cada integrante completa su bloque con resultados reales.

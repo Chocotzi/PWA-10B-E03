@@ -1,0 +1,45 @@
+# Control de versiones y CI
+.git
+.github
+.agents
+
+# Dependencias y artefactos locales (se reconstruyen de forma limpia en las etapas de la imagen)
+node_modules
+.next
+out
+build
+coverage
+test-results
+playwright-report
+blob-report
+reports
+
+# Documentación, suites de prueba y evidencias (no necesarias en tiempo de ejecución)
+docs
+evidence
+tests
+public-tests
+*.md
+Dockerfile
+
+# Variables de entorno, llaves y credenciales (nunca deben entrar al contexto de compilación)
+.env
+.env.*
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+credentials.json
+*.credentials.json
+service-account*.json
+gha-creds-*.json
+
+# Archivos temporales y de sistema
+*.log
+*.tsbuildinfo
+.DS_Store
+Thumbs.db
+
